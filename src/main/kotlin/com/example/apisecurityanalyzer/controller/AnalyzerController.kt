@@ -12,7 +12,9 @@ class AnalyzerController(private val apiScanService: ApiScanService) {
         val specUrl: String,
         val targetUrl: String,
         val maxConcurrency: Int? = 4,
-        val politenessDelayMs: Int? = 150
+        val politenessDelayMs: Int? = 150,
+        val authClientId: String,        // добавляем обязательные поля
+        val authClientSecret: String
     )
 
     @PostMapping("/analyze")
@@ -21,7 +23,9 @@ class AnalyzerController(private val apiScanService: ApiScanService) {
             specUrl = request.specUrl,
             targetUrl = request.targetUrl,
             maxConcurrency = request.maxConcurrency ?: 4,
-            politenessDelayMs = request.politenessDelayMs ?: 150
+            politenessDelayMs = request.politenessDelayMs ?: 150,
+            authClientId = request.authClientId,
+            authClientSecret = request.authClientSecret
         )
     }
 }

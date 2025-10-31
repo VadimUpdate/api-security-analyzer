@@ -24,32 +24,39 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
-    implementation("com.networknt:json-schema-validator:1.0.80")
 
     // Kotlin
     implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.19.2")
 
     // Swagger / OpenAPI
     implementation("io.swagger.parser.v3:swagger-parser:2.1.16")
 
-    // HTTP клиент для тестирования API
-    implementation("io.ktor:ktor-client-core:2.3.4")
-    implementation("io.ktor:ktor-client-cio:2.3.4")
+    // JSON Schema Validator
+    implementation("com.networknt:json-schema-validator:1.0.80")
+
+    // HTTP клиент Ktor
+    implementation("io.ktor:ktor-client-core:2.3.5")
+    implementation("io.ktor:ktor-client-cio:2.3.5")
+    implementation("io.ktor:ktor-client-content-negotiation:2.3.5")
+    implementation("io.ktor:ktor-serialization-jackson:2.3.5")
 
     // Логирование
     implementation("ch.qos.logback:logback-classic:1.5.13")
     implementation("org.codehaus.janino:janino:3.1.12")
+    implementation("org.slf4j:slf4j-api:2.0.9")
 
-    // PostgreSQL (на будущее)
+    // Корутины
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+
+    // PostgreSQL
     runtimeOnly("org.postgresql:postgresql")
 
     // Тесты
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
-    testImplementation("org.springframework.security:spring-security-test")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
+
 
 kotlin {
     compilerOptions {
