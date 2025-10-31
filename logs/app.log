@@ -5227,3 +5227,19 @@ Caused by: com.fasterxml.jackson.databind.exc.MismatchedInputException: Cannot c
 2025-10-31 08:47:24 [http-nio-8080-exec-4] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
 2025-10-31 08:47:24 [http-nio-8080-exec-4] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
 2025-10-31 08:47:24 [http-nio-8080-exec-4] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
+2025-10-31 09:03:19 [Test worker] INFO  o.s.t.c.s.AnnotationConfigContextLoaderUtils - Could not detect default configuration classes for test class [com.example.apisecurityanalyzer.ApiSecurityAnalyzerApplicationTests]: ApiSecurityAnalyzerApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2025-10-31 09:03:44 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 15160 (C:\Users\user\IdeaProjects\api-security-analyzer\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\api-security-analyzer)
+2025-10-31 09:03:44 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-10-31 09:03:45 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-10-31 09:03:45 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-10-31 09:03:45 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-10-31 09:03:45 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-10-31 09:03:45 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-10-31 09:03:45 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 719 ms
+2025-10-31 09:03:45 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-10-31 09:03:45 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-10-31 09:03:45 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-10-31 09:03:45 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 1.568 seconds (process running for 1.896)
+2025-10-31 09:04:01 [http-nio-8080-exec-3] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-10-31 09:04:01 [http-nio-8080-exec-3] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-10-31 09:04:01 [http-nio-8080-exec-3] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 0 ms
