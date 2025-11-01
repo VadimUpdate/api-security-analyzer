@@ -5,5 +5,5 @@ data class ApiEndpoint(
     val method: String,
     val summary: String = "",
     val responses: List<String> = emptyList(),
-    val baseUrl: String // <- добавлено
+    val baseUrl: String
 )

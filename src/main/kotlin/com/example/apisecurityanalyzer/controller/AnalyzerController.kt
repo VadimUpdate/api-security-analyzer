@@ -15,7 +15,7 @@ class AnalyzerController(private val apiScanService: ApiScanService) {
         val politenessDelayMs: Int? = 150,
         val authClientId: String,
         val authClientSecret: String,
-        val enableFuzzing: Boolean? = false
+        val enableFuzzing: Boolean = false
     )
 
     @PostMapping("/analyze")
@@ -27,7 +27,7 @@ class AnalyzerController(private val apiScanService: ApiScanService) {
             politenessDelayMs = request.politenessDelayMs ?: 150,
             authClientId = request.authClientId,
             authClientSecret = request.authClientSecret,
-            enableFuzzing = request.enableFuzzing ?: false   // ✅ передаем флаг
+            enableFuzzing = request.enableFuzzing
         )
     }
 }

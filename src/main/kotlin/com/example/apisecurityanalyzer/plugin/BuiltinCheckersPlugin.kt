@@ -8,13 +8,12 @@ import io.ktor.http.*
 import io.swagger.v3.oas.models.Operation
 
 /**
- * BuiltinCheckersPlugin — основной набор чекеров, теперь с поддержкой опционального фуззинга.
+ * Встроенный набор чекеров.
  *
- * Конфигурация:
- *  - enableFuzz: включить глубoкий фуззинг
- *  - politenessDelayMs, maxFuzzConcurrency, maxFuzzPayloads — параметры фуззера
+ * - enableFuzz: включает/выключает фуззинг (передаётся при создании плагина).
+ * - politenessDelayMs / maxFuzzConcurrency / maxFuzzPayloads управляют поведением фуззера.
  *
- * Требует: ClientProvider, AuthService, FuzzerService (инжектится через конструктор).
+ * Реализует CheckerPlugin.runCheck(...) (suspend).
  */
 class BuiltinCheckersPlugin(
     private val clientProvider: ClientProvider,
@@ -28,20 +27,16 @@ class BuiltinCheckersPlugin(
     override val name: String = "BuiltinCheckers"
 
     private val fuzzer = FuzzerService(
-        authService,
+        authService = authService,
         enabled = enableFuzz,
         politenessDelayMs = politenessDelayMs,
         maxConcurrency = maxFuzzConcurrency,
         maxPayloadsPerEndpoint = maxFuzzPayloads
     )
 
-    override suspend fun runCheck(
-        url: String,
-        method: String,
-        operation: Operation,
-        issues: MutableList<Issue>
-    ) {
-        fun methodFromString(m: String): HttpMethod = when (m.uppercase()) {
+
+    private fun methodFromString(m: String): HttpMethod {
+        return when (m.uppercase()) {
             "GET" -> HttpMethod.Get
             "POST" -> HttpMethod.Post
             "PUT" -> HttpMethod.Put
@@ -51,10 +46,17 @@ class BuiltinCheckersPlugin(
             "OPTIONS" -> HttpMethod.Options
             else -> HttpMethod.Get
         }
+    }
 
+    override suspend fun runCheck(
+        url: String,
+        method: String,
+        operation: Operation,
+        issues: MutableList<Issue>
+    ) {
         val httpMethod = methodFromString(method)
 
-        // Endpoints we generally skip fuzzing for (health, metrics)
+        // endpoints to skip fuzzing (common health/metrics endpoints)
         val skipFuzzingCandidates = listOf("/health", "/metrics", "/ready", "/live")
 
         // === GET / HEAD ===
@@ -65,43 +67,63 @@ class BuiltinCheckersPlugin(
                 val body = safeBodyText(resp)
 
                 if (code !in 200..399) {
-                    addIfNotDuplicate(issues, Issue(
-                        type = "ENDPOINT_ERROR_STATUS",
-                        severity = if (code >= 500) Severity.HIGH else Severity.LOW,
-                        description = "Эндпоинт $url вернул HTTP $code"
-                    ))
+                    addIfNotDuplicate(
+                        issues,
+                        Issue(
+                            type = "ENDPOINT_ERROR_STATUS",
+                            severity = if (code >= 500) Severity.HIGH else Severity.LOW,
+                            description = "Эндпоинт $url вернул HTTP $code",
+                            path = url,
+                            method = method,
+                            evidence = "HTTP $code"
+                        )
+                    )
                 }
 
-                // BOLA heuristic
+                // BOLA heuristic — URL содержит числовой id
                 if (Regex("/\\d+").containsMatchIn(url) || url.endsWith("/1")) {
-                    addIfNotDuplicate(issues, Issue(
-                        type = "BOLA",
-                        severity = Severity.MEDIUM,
-                        description = "Публичный доступ к ресурсу с идентификатором — потенциальная BOLA, HTTP $code"
-                    ))
+                    addIfNotDuplicate(
+                        issues,
+                        Issue(
+                            type = "BOLA",
+                            severity = Severity.MEDIUM,
+                            description = "Публичный доступ к ресурсу с идентификатором — потенциальная BOLA, HTTP $code",
+                            path = url,
+                            method = method,
+                            evidence = "HTTP $code"
+                        )
+                    )
                 }
 
                 // Excessive data exposure
                 if (containsSensitiveField(body)) {
-                    addIfNotDuplicate(issues, Issue(
-                        type = "EXCESSIVE_DATA_EXPOSURE",
-                        severity = Severity.HIGH,
-                        description = "Ответ содержит возможные чувствительные поля, HTTP $code"
-                    ))
+                    addIfNotDuplicate(
+                        issues,
+                        Issue(
+                            type = "EXCESSIVE_DATA_EXPOSURE",
+                            severity = Severity.HIGH,
+                            description = "Ответ содержит возможные чувствительные поля, HTTP $code",
+                            path = url,
+                            method = method,
+                            evidence = body?.take(300)
+                        )
+                    )
                 }
 
-                // IDOR
+                // IDOR heuristic (calls shared helper)
                 checkIDOR(url, method, issues, "", "")
 
-                // Broken Auth
+                // Broken auth (if operation declares security or 401 response)
                 val requiresAuth = (operation.security != null && operation.security.isNotEmpty()) ||
                         (operation.responses?.keys?.contains("401") == true)
-                if (requiresAuth) checkBrokenAuth(clientProvider.client, url, method, issues)
+                if (requiresAuth) {
+                    checkBrokenAuth(clientProvider.client, url, method, issues)
+                }
 
                 // Rate limiting check
                 checkRateLimiting(url, httpMethod, issues, authService)
 
-                // Optional non-invasive fuzzing (GET: query & header)
+                // Optional non-destructive fuzzing for GET
                 if (enableFuzz &&
                     skipFuzzingCandidates.none { url.endsWith(it, ignoreCase = true) } &&
                     operation.extensions?.get("x-scan-disabled") != true
@@ -109,16 +131,20 @@ class BuiltinCheckersPlugin(
                     try {
                         fuzzer.fuzzEndpoint(url, HttpMethod.Get, issues)
                     } catch (_: Exception) {
-                        // swallow — issues will contain network errors if any
+                        // network/errors are collected elsewhere, swallow here
                     }
                 }
-
             } catch (e: Exception) {
-                addIfNotDuplicate(issues, Issue(
-                    type = "NETWORK_ERROR",
-                    severity = Severity.MEDIUM,
-                    description = "Ошибка сети при GET/HEAD $url: ${e.message ?: "unknown"}"
-                ))
+                addIfNotDuplicate(
+                    issues,
+                    Issue(
+                        type = "NETWORK_ERROR",
+                        severity = Severity.MEDIUM,
+                        description = "Ошибка сети при GET/HEAD $url: ${e.message ?: "unknown"}",
+                        path = url,
+                        method = method
+                    )
+                )
             }
         }
 
@@ -130,66 +156,101 @@ class BuiltinCheckersPlugin(
                 operation.requestBody?.content?.get("application/json")?.schema?.let { schema ->
                     sampleBodies += buildSampleJsonFromSchema(schema)
                 }
-            } catch (_: Exception) {}
+            } catch (_: Exception) {
+                // ignore schema parsing errors for sample generation
+            }
 
+            // built-in probes + generated fuzz payloads
             sampleBodies += """{"__scanner_probe":true,"role":"admin","isAdmin":true}"""
             sampleBodies += generateFuzzPayloads().take(6).toList()
-            if (sampleBodies.isEmpty()) sampleBodies += """{"test":"scanner"}"""
+            if (sampleBodies.isEmpty()) {
+                sampleBodies += """{"test":"scanner"}"""
+            }
 
             for (body in sampleBodies) {
                 try {
-                    val resp = authService.performRequestWithAuth(httpMethod, url, "", "", {
-                        contentType(ContentType.Application.Json)
-                        setBody(body)
-                        header("X-Scanner-Probe", "true")
-                    }, issues)
+                    val resp = authService.performRequestWithAuth(
+                        httpMethod,
+                        url,
+                        "",
+                        "",
+                        {
+                            contentType(ContentType.Application.Json)
+                            setBody(body)
+                            header("X-Scanner-Probe", "true")
+                        },
+                        issues
+                    )
 
                     val code = resp?.status?.value ?: 0
                     val respBody = safeBodyText(resp)
 
-                    // Mass assignment (API6)
+                    // Mass assignment heuristic (write methods)
                     if ((method.equals("POST", true) || method.equals("PUT", true)) && code in 200..299) {
-                        if (!respBody.contains("error", true) && !respBody.contains("validation", true) &&
-                            (body.contains("isAdmin") || body.contains("role"))
-                        ) {
-                            addIfNotDuplicate(issues, Issue(
-                                type = "MASS_ASSIGNMENT",
-                                severity = Severity.MEDIUM,
-                                description = "POST/PUT принял дополнительные/административные поля, HTTP $code, body: ${respBody.take(500)}"
-                            ))
+                        if (!respBody.contains("error", true) && !respBody.contains("validation", true)) {
+                            if (body.contains("isAdmin") || body.contains("role")) {
+                                addIfNotDuplicate(
+                                    issues,
+                                    Issue(
+                                        type = "MASS_ASSIGNMENT",
+                                        severity = Severity.MEDIUM,
+                                        description = "POST/PUT принял дополнительные/административные поля, HTTP $code, body: ${respBody.take(500)}",
+                                        path = url,
+                                        method = method,
+                                        evidence = respBody.take(300)
+                                    )
+                                )
+                            }
                         }
                     }
 
-                    // Insufficient logging (API10)
+                    // Insufficient logging (stack traces leaked)
                     if (respBody.contains("Exception", true) || respBody.contains("StackTrace", true) || respBody.contains("java.lang", true)) {
-                        addIfNotDuplicate(issues, Issue(
-                            type = "INSUFFICIENT_LOGGING",
-                            severity = Severity.MEDIUM,
-                            description = "Сервер возвращает подробные ошибки/стек-трейс, HTTP $code"
-                        ))
+                        addIfNotDuplicate(
+                            issues,
+                            Issue(
+                                type = "INSUFFICIENT_LOGGING",
+                                severity = Severity.MEDIUM,
+                                description = "Сервер возвращает подробные ошибки/стек-трейс, HTTP $code",
+                                path = url,
+                                method = method,
+                                evidence = respBody.take(300)
+                            )
+                        )
                     }
 
-                    // Quick injection detection from sample bodies (API8)
+                    // Quick injection heuristic from sample bodies
                     if ((body.contains("' OR '1'='1") || body.contains("<script") || body.contains("..\\")) &&
                         (respBody.contains("syntax", true) || respBody.contains("sql", true) || respBody.contains("exception", true))
                     ) {
-                        addIfNotDuplicate(issues, Issue(
-                            type = "INJECTION",
-                            severity = Severity.HIGH,
-                            description = "Потенциальная инъекция при передаче тела, HTTP $code"
-                        ))
+                        addIfNotDuplicate(
+                            issues,
+                            Issue(
+                                type = "INJECTION",
+                                severity = Severity.HIGH,
+                                description = "Потенциальная инъекция при передаче тела, HTTP $code",
+                                path = url,
+                                method = method,
+                                evidence = respBody.take(300)
+                            )
+                        )
                     }
 
                 } catch (e: Exception) {
-                    addIfNotDuplicate(issues, Issue(
-                        type = "NETWORK_ERROR",
-                        severity = Severity.MEDIUM,
-                        description = "Ошибка сети при POST/PUT/PATCH $url: ${e.message ?: "unknown"}"
-                    ))
+                    addIfNotDuplicate(
+                        issues,
+                        Issue(
+                            type = "NETWORK_ERROR",
+                            severity = Severity.MEDIUM,
+                            description = "Ошибка сети при POST/PUT/PATCH $url: ${e.message ?: "unknown"}",
+                            path = url,
+                            method = method
+                        )
+                    )
                 }
             }
 
-            // Rate limiting (API4)
+            // Rate limiting for write methods
             checkRateLimiting(url, httpMethod, issues, authService)
 
             // Optional fuzzing for body-capable methods
@@ -197,7 +258,11 @@ class BuiltinCheckersPlugin(
                 skipFuzzingCandidates.none { url.endsWith(it, ignoreCase = true) } &&
                 operation.extensions?.get("x-scan-disabled") != true
             ) {
-                try { fuzzer.fuzzEndpoint(url, httpMethod, issues) } catch (_: Exception) {}
+                try {
+                    fuzzer.fuzzEndpoint(url, httpMethod, issues)
+                } catch (_: Exception) {
+                    // swallow
+                }
             }
         }
 
@@ -208,13 +273,20 @@ class BuiltinCheckersPlugin(
                 val adminUrl = url.trimEnd('/') + suf
                 val resp = authService.performRequestWithAuth(HttpMethod.Get, adminUrl, "", "", null, issues)
                 if (resp?.status?.value in 200..299) {
-                    addIfNotDuplicate(issues, Issue(
-                        type = "BROKEN_FUNCTION_LEVEL_AUTH",
-                        severity = Severity.HIGH,
-                        description = "Административный/debug эндпоинт доступен публично: $adminUrl"
-                    ))
+                    addIfNotDuplicate(
+                        issues,
+                        Issue(
+                            type = "BROKEN_FUNCTION_LEVEL_AUTH",
+                            severity = Severity.HIGH,
+                            description = "Административный/debug эндпоинт доступен публично: $adminUrl",
+                            path = adminUrl,
+                            method = "GET"
+                        )
+                    )
                 }
-            } catch (_: Exception) {}
+            } catch (_: Exception) {
+                // ignore
+            }
         }
 
         // === Quick injection via query param (API8) ===
@@ -224,14 +296,22 @@ class BuiltinCheckersPlugin(
             if (resp?.status?.value in 200..299) {
                 val b = safeBodyText(resp)
                 if (b.contains("sql", true) || b.contains("syntax", true) || b.contains("exception", true)) {
-                    addIfNotDuplicate(issues, Issue(
-                        type = "INJECTION",
-                        severity = Severity.HIGH,
-                        description = "Потенциальная инъекция через query param: $injUrl"
-                    ))
+                    addIfNotDuplicate(
+                        issues,
+                        Issue(
+                            type = "INJECTION",
+                            severity = Severity.HIGH,
+                            description = "Потенциальная инъекция через query param: $injUrl",
+                            path = injUrl,
+                            method = "GET",
+                            evidence = b.take(300)
+                        )
+                    )
                 }
             }
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+            // ignore
+        }
 
         // === Security Misconfiguration (API7) ===
         val docsPaths = listOf("/swagger", "/swagger-ui", "/docs", "/redoc")
@@ -240,13 +320,20 @@ class BuiltinCheckersPlugin(
                 val docUrl = url.trimEnd('/') + docPath
                 val resp = authService.performRequestWithAuth(HttpMethod.Get, docUrl, "", "", null, issues)
                 if (resp?.status?.value in 200..299) {
-                    addIfNotDuplicate(issues, Issue(
-                        type = "SECURITY_MISCONFIGURATION",
-                        severity = Severity.MEDIUM,
-                        description = "Публичный доступ к документации API: $docUrl"
-                    ))
+                    addIfNotDuplicate(
+                        issues,
+                        Issue(
+                            type = "SECURITY_MISCONFIGURATION",
+                            severity = Severity.MEDIUM,
+                            description = "Публичный доступ к документации API: $docUrl",
+                            path = docUrl,
+                            method = "GET"
+                        )
+                    )
                 }
-            } catch (_: Exception) {}
+            } catch (_: Exception) {
+                // ignore
+            }
         }
 
         // === Improper Assets Management (API9) ===
@@ -256,34 +343,50 @@ class BuiltinCheckersPlugin(
                 val legacyUrl = url.trimEnd('/') + suf
                 val resp = authService.performRequestWithAuth(HttpMethod.Get, legacyUrl, "", "", null, issues)
                 if (resp?.status?.value in 200..299) {
-                    addIfNotDuplicate(issues, Issue(
-                        type = "IMPROPER_ASSETS_MANAGEMENT",
-                        severity = Severity.MEDIUM,
-                        description = "Публично доступный устаревший/test/debug ресурс: $legacyUrl"
-                    ))
+                    addIfNotDuplicate(
+                        issues,
+                        Issue(
+                            type = "IMPROPER_ASSETS_MANAGEMENT",
+                            severity = Severity.MEDIUM,
+                            description = "Публично доступный устаревший/test/debug ресурс: $legacyUrl",
+                            path = legacyUrl,
+                            method = "GET"
+                        )
+                    )
                 }
-            } catch (_: Exception) {}
+            } catch (_: Exception) {
+                // ignore
+            }
         }
     }
 
     /**
-     * Check rate limiting by sending a small burst and looking for 429 responses.
-     * Simple heuristic; can be improved later with headers (Retry-After) or rate-limited responses.
+     * Простейшая проверка rate limiting: шлём небольшой burst и смотрим на 429.
+     * Использует authService для унифицированной логики (401 retry и т.д.).
      */
     private suspend fun checkRateLimiting(url: String, method: HttpMethod, issues: MutableList<Issue>, authService: AuthService) {
         try {
             var triggered = false
             repeat(5) {
                 val resp = authService.performRequestWithAuth(method, url, "", "", null, issues)
-                if (resp?.status?.value == 429) triggered = true
+                if (resp?.status?.value == 429) {
+                    triggered = true
+                }
             }
             if (!triggered) {
-                addIfNotDuplicate(issues, Issue(
-                    type = "RATE_LIMITING",
-                    severity = Severity.MEDIUM,
-                    description = "Эндпоинт $url не защищен rate limiting (можно слать много запросов)"
-                ))
+                addIfNotDuplicate(
+                    issues,
+                    Issue(
+                        type = "RATE_LIMITING",
+                        severity = Severity.MEDIUM,
+                        description = "Эндпоинт $url не защищен rate limiting (можно слать много запросов)",
+                        path = url,
+                        method = method.value
+                    )
+                )
             }
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+            // ignore network issues here
+        }
     }
 }
