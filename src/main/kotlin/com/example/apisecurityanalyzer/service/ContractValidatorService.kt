@@ -11,7 +11,7 @@ import io.swagger.v3.oas.models.OpenAPI
  *
  * Для совместимости метод validateResponse возвращает List<Issue> (как в монолите).
  */
-class ContractValidatorService(private val openApi: OpenAPI) {
+class ContractValidatorService(private val openApi: OpenAPI?) {
     private val mapper = jacksonObjectMapper()
 
     /**
