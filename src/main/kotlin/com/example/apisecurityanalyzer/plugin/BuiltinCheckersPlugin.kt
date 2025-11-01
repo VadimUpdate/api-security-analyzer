@@ -9,10 +9,15 @@ import io.swagger.v3.oas.models.Operation
 
 class BuiltinCheckersPlugin(
     private val clientProvider: ClientProvider,
-    private val authService: AuthService
+    private val authService: AuthService,
+    politenessDelayMs: Long = 150,
+    maxFuzzConcurrency: Int = 4
 ) : CheckerPlugin {
 
     override val name: String = "BuiltinCheckers"
+
+    // Fuzzer instance (configurable via constructor)
+    private val fuzzer = FuzzerService(authService, politenessDelayMs = politenessDelayMs, maxConcurrency = maxFuzzConcurrency)
 
     override suspend fun runCheck(
         url: String,
@@ -32,6 +37,9 @@ class BuiltinCheckersPlugin(
         }
 
         val httpMethod = methodFromString(method)
+
+        // Skip noisy endpoints for fuzzing (common health/metrics)
+        val skipFuzzingCandidates = listOf("/health", "/metrics", "/ready", "/live")
 
         // === GET / HEAD ===
         if (method.equals("GET", true) || method.equals("HEAD", true)) {
@@ -76,6 +84,18 @@ class BuiltinCheckersPlugin(
 
                 // Rate limiting (API4)
                 checkRateLimiting(url, httpMethod, issues, authService)
+
+                // Non-invasive fuzzing for GET (query/header) — skip health/metrics and user-disabled endpoints
+                if (skipFuzzingCandidates.none { url.endsWith(it, ignoreCase = true) } &&
+                    operation.extensions?.get("x-scan-disabled") != true
+                ) {
+                    try {
+                        // fuzzEndpoint will internally limit concurrency/payloads
+                        fuzzer.fuzzEndpoint(url, HttpMethod.Get, issues)
+                    } catch (_: Exception) {
+                        // swallow; individual errors are recorded elsewhere
+                    }
+                }
 
             } catch (e: Exception) {
                 addIfNotDuplicate(issues, Issue(
@@ -155,6 +175,15 @@ class BuiltinCheckersPlugin(
 
             // Rate limiting (API4)
             checkRateLimiting(url, httpMethod, issues, authService)
+
+            // Fuzzing for body/header/query on methods that accept body
+            if (skipFuzzingCandidates.none { url.endsWith(it, ignoreCase = true) } &&
+                operation.extensions?.get("x-scan-disabled") != true
+            ) {
+                try {
+                    fuzzer.fuzzEndpoint(url, httpMethod, issues)
+                } catch (_: Exception) {}
+            }
         }
 
         // === Admin / Debug / Config endpoints (API5) ===
