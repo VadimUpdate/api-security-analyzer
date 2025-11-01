@@ -7,17 +7,33 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import io.swagger.v3.oas.models.Operation
 
+/**
+ * BuiltinCheckersPlugin — основной набор чекеров, теперь с поддержкой опционального фуззинга.
+ *
+ * Конфигурация:
+ *  - enableFuzz: включить глубoкий фуззинг
+ *  - politenessDelayMs, maxFuzzConcurrency, maxFuzzPayloads — параметры фуззера
+ *
+ * Требует: ClientProvider, AuthService, FuzzerService (инжектится через конструктор).
+ */
 class BuiltinCheckersPlugin(
     private val clientProvider: ClientProvider,
     private val authService: AuthService,
+    private val enableFuzz: Boolean = false,
     politenessDelayMs: Long = 150,
-    maxFuzzConcurrency: Int = 4
+    maxFuzzConcurrency: Int = 4,
+    maxFuzzPayloads: Int = 10
 ) : CheckerPlugin {
 
     override val name: String = "BuiltinCheckers"
 
-    // Fuzzer instance (configurable via constructor)
-    private val fuzzer = FuzzerService(authService, politenessDelayMs = politenessDelayMs, maxConcurrency = maxFuzzConcurrency)
+    private val fuzzer = FuzzerService(
+        authService,
+        enabled = enableFuzz,
+        politenessDelayMs = politenessDelayMs,
+        maxConcurrency = maxFuzzConcurrency,
+        maxPayloadsPerEndpoint = maxFuzzPayloads
+    )
 
     override suspend fun runCheck(
         url: String,
@@ -38,7 +54,7 @@ class BuiltinCheckersPlugin(
 
         val httpMethod = methodFromString(method)
 
-        // Skip noisy endpoints for fuzzing (common health/metrics)
+        // Endpoints we generally skip fuzzing for (health, metrics)
         val skipFuzzingCandidates = listOf("/health", "/metrics", "/ready", "/live")
 
         // === GET / HEAD ===
@@ -56,7 +72,7 @@ class BuiltinCheckersPlugin(
                     ))
                 }
 
-                // BOLA
+                // BOLA heuristic
                 if (Regex("/\\d+").containsMatchIn(url) || url.endsWith("/1")) {
                     addIfNotDuplicate(issues, Issue(
                         type = "BOLA",
@@ -82,18 +98,18 @@ class BuiltinCheckersPlugin(
                         (operation.responses?.keys?.contains("401") == true)
                 if (requiresAuth) checkBrokenAuth(clientProvider.client, url, method, issues)
 
-                // Rate limiting (API4)
+                // Rate limiting check
                 checkRateLimiting(url, httpMethod, issues, authService)
 
-                // Non-invasive fuzzing for GET (query/header) — skip health/metrics and user-disabled endpoints
-                if (skipFuzzingCandidates.none { url.endsWith(it, ignoreCase = true) } &&
+                // Optional non-invasive fuzzing (GET: query & header)
+                if (enableFuzz &&
+                    skipFuzzingCandidates.none { url.endsWith(it, ignoreCase = true) } &&
                     operation.extensions?.get("x-scan-disabled") != true
                 ) {
                     try {
-                        // fuzzEndpoint will internally limit concurrency/payloads
                         fuzzer.fuzzEndpoint(url, HttpMethod.Get, issues)
                     } catch (_: Exception) {
-                        // swallow; individual errors are recorded elsewhere
+                        // swallow — issues will contain network errors if any
                     }
                 }
 
@@ -153,7 +169,7 @@ class BuiltinCheckersPlugin(
                         ))
                     }
 
-                    // Injection (API8)
+                    // Quick injection detection from sample bodies (API8)
                     if ((body.contains("' OR '1'='1") || body.contains("<script") || body.contains("..\\")) &&
                         (respBody.contains("syntax", true) || respBody.contains("sql", true) || respBody.contains("exception", true))
                     ) {
@@ -176,13 +192,12 @@ class BuiltinCheckersPlugin(
             // Rate limiting (API4)
             checkRateLimiting(url, httpMethod, issues, authService)
 
-            // Fuzzing for body/header/query on methods that accept body
-            if (skipFuzzingCandidates.none { url.endsWith(it, ignoreCase = true) } &&
+            // Optional fuzzing for body-capable methods
+            if (enableFuzz &&
+                skipFuzzingCandidates.none { url.endsWith(it, ignoreCase = true) } &&
                 operation.extensions?.get("x-scan-disabled") != true
             ) {
-                try {
-                    fuzzer.fuzzEndpoint(url, httpMethod, issues)
-                } catch (_: Exception) {}
+                try { fuzzer.fuzzEndpoint(url, httpMethod, issues) } catch (_: Exception) {}
             }
         }
 
@@ -251,11 +266,14 @@ class BuiltinCheckersPlugin(
         }
     }
 
-    // === Rate Limiting helper (API4) ===
+    /**
+     * Check rate limiting by sending a small burst and looking for 429 responses.
+     * Simple heuristic; can be improved later with headers (Retry-After) or rate-limited responses.
+     */
     private suspend fun checkRateLimiting(url: String, method: HttpMethod, issues: MutableList<Issue>, authService: AuthService) {
         try {
             var triggered = false
-            repeat(5) { // 5 быстрых запросов подряд
+            repeat(5) {
                 val resp = authService.performRequestWithAuth(method, url, "", "", null, issues)
                 if (resp?.status?.value == 429) triggered = true
             }

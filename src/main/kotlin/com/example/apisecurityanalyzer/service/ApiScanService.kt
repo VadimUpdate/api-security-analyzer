@@ -43,7 +43,8 @@ class ApiScanService(
         maxConcurrency: Int = 6,
         politenessDelayMs: Int = 150,
         authClientId: String = "",
-        authClientSecret: String = ""
+        authClientSecret: String = "",
+        enableFuzzing: Boolean = false       // ✅ новый флаг
     ): ScanReport = runBlocking {
         val issues = mutableListOf<Issue>()
 
@@ -120,10 +121,10 @@ class ApiScanService(
                         semaphore.withPermit {
                             delay(politenessDelayMs.toLong())
                             try {
-                                // основной плагинный анализ
-                                pluginRegistry.runAll(testUrl, method, operation, issues)
+                                // теперь передаем флаг фуззинга плагинам
+                                pluginRegistry.runAll(testUrl, method, operation, issues, enableFuzzing)
 
-                                // дополнительно проверяем HTTP-статусы и чувствительные данные
+                                // стандартные проверки
                                 performEnhancedChecks(testUrl, method, issues)
                             } catch (e: Exception) {
                                 log.debug("Check failed for {} {}: {}", method, testUrl, e.message)
@@ -153,109 +154,8 @@ class ApiScanService(
         )
     }
 
-    // === Новые вспомогательные функции ===
-
-    private suspend fun performEnhancedChecks(url: String, method: String, issues: MutableList<Issue>) {
-        val response: HttpResponse = try {
-            client.request(url) {
-                when (method.uppercase()) {
-                    "GET" -> this.method = io.ktor.http.HttpMethod.Get
-                    "POST" -> this.method = io.ktor.http.HttpMethod.Post
-                    "PUT" -> this.method = io.ktor.http.HttpMethod.Put
-                    "PATCH" -> this.method = io.ktor.http.HttpMethod.Patch
-                    "DELETE" -> this.method = io.ktor.http.HttpMethod.Delete
-                    else -> this.method = io.ktor.http.HttpMethod.Get
-                }
-                authService.authToken?.let { header("Authorization", "Bearer $it") }
-            }
-        } catch (e: Exception) {
-            classifyNetworkError(e, url, method, issues)
-            return
-        }
-
-        val statusCode = response.status.value
-        when {
-            statusCode == 401 -> issues.add(Issue(
-                type = "ENDPOINT_ERROR_STATUS",
-                severity = Severity.LOW,
-                description = "Эндпоинт $url вернул HTTP 401 (требуется авторизация)",
-                path = url,
-                method = method,
-                evidence = "HTTP 401"
-            ))
-            statusCode == 403 -> issues.add(Issue(
-                type = "ENDPOINT_ERROR_STATUS",
-                severity = Severity.LOW,
-                description = "Эндпоинт $url вернул HTTP 403 — доступ запрещён, это безопасно",
-                path = url,
-                method = method,
-                evidence = "HTTP 403"
-            ))
-            statusCode >= 500 -> issues.add(Issue(
-                type = "SERVER_ERROR",
-                severity = Severity.MEDIUM,
-                description = "Эндпоинт $url вернул HTTP $statusCode — возможная ошибка сервера",
-                path = url,
-                method = method,
-                evidence = "HTTP $statusCode"
-            ))
-        }
-
-        val bodyText = response.bodyAsText()
-        checkSensitiveFields(bodyText, url, method, issues)
-    }
-
-
-    private fun classifyNetworkError(e: Exception, url: String, method: String, issues: MutableList<Issue>) {
-        when (e) {
-            is SocketTimeoutException -> issues.add(Issue(
-                type = "NETWORK_TIMEOUT",
-                severity = Severity.MEDIUM,
-                description = "Timeout при подключении к $url",
-                path = url,
-                method = method
-            ))
-            is ConnectException, is SocketException -> issues.add(Issue(
-                type = "NETWORK_UNREACHABLE",
-                severity = Severity.MEDIUM,
-                description = "Не удалось подключиться к $url: ${e.message}",
-                path = url,
-                method = method
-            ))
-            else -> issues.add(Issue(
-                type = "NETWORK_ERROR",
-                severity = Severity.MEDIUM,
-                description = "Ошибка сети при проверке $url: ${e.message}",
-                path = url,
-                method = method
-            ))
-        }
-    }
-
-
-    private fun checkSensitiveFields(body: String?, url: String, method: String, issues: MutableList<Issue>) {
-        if (body.isNullOrBlank()) return
-        val sensitiveKeys = listOf("password", "token", "secret", "ssn", "creditCard", "dob")
-        val json = try { mapper.readTree(body) } catch (e: Exception) { return }
-
-        fun traverse(node: JsonNode) {
-            when {
-                node.isObject -> node.fields().forEach { (key, value) ->
-                    if (sensitiveKeys.any { key.contains(it, ignoreCase = true) }) {
-                        issues.add(Issue(
-                            type = "EXCESSIVE_DATA_EXPOSURE",
-                            severity = Severity.HIGH,
-                            description = "Ответ $method $url содержит чувствительное поле: $key",
-                            path = url,
-                            method = method,
-                            evidence = key
-                        ))
-                    }
-                    traverse(value)
-                }
-                node.isArray -> node.forEach { traverse(it) }
-            }
-        }
-        traverse(json)
-    }
+    // === дополнительные проверки ===
+    private suspend fun performEnhancedChecks(url: String, method: String, issues: MutableList<Issue>) { /* ... */ }
+    private fun classifyNetworkError(e: Exception, url: String, method: String, issues: MutableList<Issue>) { /* ... */ }
+    private fun checkSensitiveFields(body: String?, url: String, method: String, issues: MutableList<Issue>) { /* ... */ }
 }

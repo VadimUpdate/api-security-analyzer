@@ -1,7 +1,7 @@
 package com.example.apianalyzer.controller
 
-import com.example.apianalyzer.service.ApiScanService
 import com.example.apianalyzer.model.ScanReport
+import com.example.apianalyzer.service.ApiScanService
 import org.springframework.web.bind.annotation.*
 
 @RestController
@@ -13,8 +13,9 @@ class AnalyzerController(private val apiScanService: ApiScanService) {
         val targetUrl: String,
         val maxConcurrency: Int? = 4,
         val politenessDelayMs: Int? = 150,
-        val authClientId: String,        // добавляем обязательные поля
-        val authClientSecret: String
+        val authClientId: String,
+        val authClientSecret: String,
+        val enableFuzzing: Boolean? = false
     )
 
     @PostMapping("/analyze")
@@ -25,7 +26,8 @@ class AnalyzerController(private val apiScanService: ApiScanService) {
             maxConcurrency = request.maxConcurrency ?: 4,
             politenessDelayMs = request.politenessDelayMs ?: 150,
             authClientId = request.authClientId,
-            authClientSecret = request.authClientSecret
+            authClientSecret = request.authClientSecret,
+            enableFuzzing = request.enableFuzzing ?: false   // ✅ передаем флаг
         )
     }
 }
