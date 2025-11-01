@@ -2,15 +2,7 @@ package com.example.apianalyzer.plugin
 
 import com.example.apianalyzer.model.Issue
 import com.example.apianalyzer.model.Severity
-import com.example.apianalyzer.service.AuthService
-import com.example.apianalyzer.service.ClientProvider
-import com.example.apianalyzer.service.addIfNotDuplicate
-import com.example.apianalyzer.service.buildSampleJsonFromSchema
-import com.example.apianalyzer.service.containsSensitiveField
-import com.example.apianalyzer.service.generateFuzzPayloads
-import com.example.apianalyzer.service.safeBodyText
-import com.example.apianalyzer.service.checkBrokenAuth
-import com.example.apianalyzer.service.checkIDOR
+import com.example.apianalyzer.service.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import io.swagger.v3.oas.models.Operation
@@ -38,6 +30,8 @@ class BuiltinCheckersPlugin(
             "OPTIONS" -> HttpMethod.Options
             else -> HttpMethod.Get
         }
+
+        val httpMethod = methodFromString(method)
 
         // === GET / HEAD ===
         if (method.equals("GET", true) || method.equals("HEAD", true)) {
@@ -72,10 +66,16 @@ class BuiltinCheckersPlugin(
                     ))
                 }
 
+                // IDOR
                 checkIDOR(url, method, issues, "", "")
+
+                // Broken Auth
                 val requiresAuth = (operation.security != null && operation.security.isNotEmpty()) ||
                         (operation.responses?.keys?.contains("401") == true)
                 if (requiresAuth) checkBrokenAuth(clientProvider.client, url, method, issues)
+
+                // Rate limiting (API4)
+                checkRateLimiting(url, httpMethod, issues, authService)
 
             } catch (e: Exception) {
                 addIfNotDuplicate(issues, Issue(
@@ -102,7 +102,7 @@ class BuiltinCheckersPlugin(
 
             for (body in sampleBodies) {
                 try {
-                    val resp = authService.performRequestWithAuth(methodFromString(method), url, "", "", {
+                    val resp = authService.performRequestWithAuth(httpMethod, url, "", "", {
                         contentType(ContentType.Application.Json)
                         setBody(body)
                         header("X-Scanner-Probe", "true")
@@ -111,7 +111,7 @@ class BuiltinCheckersPlugin(
                     val code = resp?.status?.value ?: 0
                     val respBody = safeBodyText(resp)
 
-                    // Mass assignment
+                    // Mass assignment (API6)
                     if ((method.equals("POST", true) || method.equals("PUT", true)) && code in 200..299) {
                         if (!respBody.contains("error", true) && !respBody.contains("validation", true) &&
                             (body.contains("isAdmin") || body.contains("role"))
@@ -124,7 +124,7 @@ class BuiltinCheckersPlugin(
                         }
                     }
 
-                    // Insufficient logging
+                    // Insufficient logging (API10)
                     if (respBody.contains("Exception", true) || respBody.contains("StackTrace", true) || respBody.contains("java.lang", true)) {
                         addIfNotDuplicate(issues, Issue(
                             type = "INSUFFICIENT_LOGGING",
@@ -133,7 +133,7 @@ class BuiltinCheckersPlugin(
                         ))
                     }
 
-                    // Injection
+                    // Injection (API8)
                     if ((body.contains("' OR '1'='1") || body.contains("<script") || body.contains("..\\")) &&
                         (respBody.contains("syntax", true) || respBody.contains("sql", true) || respBody.contains("exception", true))
                     ) {
@@ -152,9 +152,12 @@ class BuiltinCheckersPlugin(
                     ))
                 }
             }
+
+            // Rate limiting (API4)
+            checkRateLimiting(url, httpMethod, issues, authService)
         }
 
-        // === Admin / Debug / Config endpoints ===
+        // === Admin / Debug / Config endpoints (API5) ===
         val adminCandidates = listOf("/admin", "/debug", "/config", "/test", "/internal")
         for (suf in adminCandidates) {
             try {
@@ -170,7 +173,7 @@ class BuiltinCheckersPlugin(
             } catch (_: Exception) {}
         }
 
-        // Quick injection via query param
+        // === Quick injection via query param (API8) ===
         try {
             val injUrl = if (url.contains("?")) "$url&__scan_inj=' OR '1'='1" else "$url?__scan_inj=' OR '1'='1"
             val resp = authService.performRequestWithAuth(HttpMethod.Get, injUrl, "", "", null, issues)
@@ -183,6 +186,56 @@ class BuiltinCheckersPlugin(
                         description = "Потенциальная инъекция через query param: $injUrl"
                     ))
                 }
+            }
+        } catch (_: Exception) {}
+
+        // === Security Misconfiguration (API7) ===
+        val docsPaths = listOf("/swagger", "/swagger-ui", "/docs", "/redoc")
+        for (docPath in docsPaths) {
+            try {
+                val docUrl = url.trimEnd('/') + docPath
+                val resp = authService.performRequestWithAuth(HttpMethod.Get, docUrl, "", "", null, issues)
+                if (resp?.status?.value in 200..299) {
+                    addIfNotDuplicate(issues, Issue(
+                        type = "SECURITY_MISCONFIGURATION",
+                        severity = Severity.MEDIUM,
+                        description = "Публичный доступ к документации API: $docUrl"
+                    ))
+                }
+            } catch (_: Exception) {}
+        }
+
+        // === Improper Assets Management (API9) ===
+        val legacyCandidates = listOf("/v0", "/v1", "/old", "/sandbox", "/mock", "/backup", "/config.json")
+        for (suf in legacyCandidates) {
+            try {
+                val legacyUrl = url.trimEnd('/') + suf
+                val resp = authService.performRequestWithAuth(HttpMethod.Get, legacyUrl, "", "", null, issues)
+                if (resp?.status?.value in 200..299) {
+                    addIfNotDuplicate(issues, Issue(
+                        type = "IMPROPER_ASSETS_MANAGEMENT",
+                        severity = Severity.MEDIUM,
+                        description = "Публично доступный устаревший/test/debug ресурс: $legacyUrl"
+                    ))
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    // === Rate Limiting helper (API4) ===
+    private suspend fun checkRateLimiting(url: String, method: HttpMethod, issues: MutableList<Issue>, authService: AuthService) {
+        try {
+            var triggered = false
+            repeat(5) { // 5 быстрых запросов подряд
+                val resp = authService.performRequestWithAuth(method, url, "", "", null, issues)
+                if (resp?.status?.value == 429) triggered = true
+            }
+            if (!triggered) {
+                addIfNotDuplicate(issues, Issue(
+                    type = "RATE_LIMITING",
+                    severity = Severity.MEDIUM,
+                    description = "Эндпоинт $url не защищен rate limiting (можно слать много запросов)"
+                ))
             }
         } catch (_: Exception) {}
     }
