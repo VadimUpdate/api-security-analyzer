@@ -1,9 +1,9 @@
 package com.example.apianalyzer.service
 
 import com.example.apianalyzer.model.Issue
+import com.example.apianalyzer.model.Severity
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.ktor.client.*
-import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
@@ -90,12 +90,12 @@ class AuthService(private val clientProvider: ClientProvider) {
             addIfNotDuplicate(
                 issues,
                 Issue(
-                    "TOKEN_ERROR",
-                    baseUrlCandidate,
-                    "POST",
-                    "HIGH",
-                    "Не удалось получить токен",
-                    e.message ?: "unknown"
+                    type = "TOKEN_ERROR",
+                    path = baseUrlCandidate,
+                    method = "POST",
+                    severity = Severity.HIGH,
+                    description = "Не удалось получить токен",
+                    evidence = e.message ?: "unknown"
                 )
             )
             null

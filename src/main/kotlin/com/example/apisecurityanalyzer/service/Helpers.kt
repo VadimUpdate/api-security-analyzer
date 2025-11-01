@@ -1,9 +1,9 @@
 package com.example.apianalyzer.service
 
 import com.example.apianalyzer.model.Issue
+import com.example.apianalyzer.model.Severity
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.ktor.client.*
-import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.swagger.v3.oas.models.PathItem
@@ -20,7 +20,14 @@ fun addIfNotDuplicate(issues: MutableList<Issue>, i: Issue) {
 }
 
 fun addNetworkIssue(issues: MutableList<Issue>, url: String, method: String, title: String, details: String) {
-    addIfNotDuplicate(issues, Issue("NETWORK_ERROR", url, method, "HIGH", title, details))
+    addIfNotDuplicate(issues, Issue(
+        type = "NETWORK_ERROR",
+        severity = Severity.HIGH,
+        description = title,
+        path = url,
+        method = method,
+        evidence = details
+    ))
 }
 
 fun extractOperations(pathItem: PathItem): Map<String, io.swagger.v3.oas.models.Operation?> = mapOf(
@@ -42,25 +49,36 @@ fun buildUrlFromPath(base: String, template: String, params: List<Parameter>): S
 fun containsSensitiveField(body: String?): Boolean {
     if (body.isNullOrBlank()) return false
     val keywords = listOf("password", "secret", "token", "apiKey", "ssn")
-    return keywords.any { body.contains(it, true) }
+    return keywords.any { body.contains(it, ignoreCase = true) }
 }
 
-fun checkIDOR(url: String, method: String, issues: MutableList<Issue>, clientId: String, clientSecret: String) {
+fun checkIDOR(url: String, method: String, issues: MutableList<Issue>, clientId: String = "", clientSecret: String = "") {
     if (url.matches(Regex(".*/\\d+"))) {
-        addIfNotDuplicate(issues, Issue("IDOR", url, method, "HIGH", "Возможный IDOR через числовой ID в URL", "Проверьте изменение ID"))
+        addIfNotDuplicate(issues, Issue(
+            type = "IDOR",
+            severity = Severity.HIGH,
+            description = "Возможный IDOR через числовой ID в URL",
+            path = url,
+            method = method,
+            evidence = "Проверьте изменение ID"
+        ))
     }
 }
 
-/**
- * Run a quick public-access check using provided client.
- * (Helper version — требует client, чтобы не создавать ClientProvider внутри функции.)
- */
+/** Быстрая проверка открытого доступа без токена */
 fun checkBrokenAuth(client: HttpClient, url: String, method: String, issues: MutableList<Issue>) {
     runBlocking {
         try {
             val resp = client.request(url) { this.method = io.ktor.http.HttpMethod.Get }
             if (resp.status.value in 200..299) {
-                addIfNotDuplicate(issues, Issue("BROKEN_AUTH", url, method, "HIGH", "Эндпоинт доступен без токена", "HTTP ${resp.status.value}"))
+                addIfNotDuplicate(issues, Issue(
+                    type = "BROKEN_AUTH",
+                    severity = Severity.HIGH,
+                    description = "Эндпоинт доступен без токена",
+                    path = url,
+                    method = method,
+                    evidence = "HTTP ${resp.status.value}"
+                ))
             }
         } catch (_: Exception) {}
     }
@@ -80,8 +98,12 @@ suspend fun checkTargetReachable(client: HttpClient, targetUrl: String, paths: S
     }
 }
 
-fun safeBodyText(resp: HttpResponse): String = runBlocking { try { resp.bodyAsText() } catch (_: Exception) { "" } }
+/** Безопасное чтение тела ответа */
+fun safeBodyText(resp: HttpResponse): String = runBlocking {
+    try { resp.bodyAsText() } catch (_: Exception) { "" }
+}
 
+/** Генерация JSON примеров из схемы */
 fun buildSampleJsonFromSchema(schema: Schema<*>): List<String> {
     val obj = mutableMapOf<String, Any?>()
     schema.properties?.forEach { (k, v) ->
@@ -96,20 +118,28 @@ fun buildSampleJsonFromSchema(schema: Schema<*>): List<String> {
     return listOf(mapper.writeValueAsString(obj))
 }
 
+/** Fuzz-пейлоады для инъекций */
 fun generateFuzzPayloads(): Sequence<String> = sequence {
     yield("{\"fuzz\":\"' OR '1'='1\"}")
     yield("{\"fuzz\":\"<script>alert(1)</script>\"}")
     yield("{\"fuzz\":\"../../etc/passwd\"}")
 }
 
-/** Глобальные проверки доступности Swagger/OpenAPI */
+/** Глобальные проверки публичного доступа к Swagger/OpenAPI */
 suspend fun runGlobalChecks(client: HttpClient, targetUrl: String, issues: MutableList<Issue>) {
     val urls = listOf("/swagger-ui.html", "/swagger.json", "/openapi.json")
     for (u in urls) {
         try {
             val resp = client.get(targetUrl.trimEnd('/') + u)
             if (resp.status.value in 200..299) {
-                addIfNotDuplicate(issues, Issue("PUBLIC_API_DOCS", targetUrl + u, "GET", "MEDIUM", "Swagger/OpenAPI доступен публично", "HTTP ${resp.status.value}"))
+                addIfNotDuplicate(issues, Issue(
+                    type = "PUBLIC_API_DOCS",
+                    severity = Severity.MEDIUM,
+                    description = "Swagger/OpenAPI доступен публично",
+                    path = targetUrl + u,
+                    method = "GET",
+                    evidence = "HTTP ${resp.status.value}"
+                ))
             }
         } catch (_: Exception) {}
     }

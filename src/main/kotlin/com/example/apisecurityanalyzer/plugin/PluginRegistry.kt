@@ -1,6 +1,7 @@
 package com.example.apianalyzer.service
 
 import com.example.apianalyzer.model.Issue
+import com.example.apianalyzer.model.Severity
 import com.example.apianalyzer.plugin.CheckerPlugin
 import io.swagger.v3.oas.models.Operation
 
@@ -20,7 +21,7 @@ class PluginRegistry {
                     type = "PLUGIN_ERROR",
                     path = url,
                     method = method,
-                    severity = "LOW",
+                    severity = Severity.LOW, // <- исправлено
                     description = "Ошибка плагина ${plugin.name}",
                     evidence = e.message ?: "unknown"
                 )
