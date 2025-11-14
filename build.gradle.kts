@@ -24,7 +24,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
-
     // Kotlin
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.19.2")
@@ -45,7 +44,7 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.5.13")
     implementation("org.codehaus.janino:janino:3.1.12")
     implementation("org.slf4j:slf4j-api:2.0.9")
-
+    implementation("io.ktor:ktor-client-logging:2.3.3")
     // Корутины
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
 

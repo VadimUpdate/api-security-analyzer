@@ -9,14 +9,14 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
- * Расширенный фуззер: query params, request body, headers.
+ * Фуззер для API: query params, headers, body.
  * Параметры:
- *  - enabled: включён/выключен фуззинг
- *  - politenessDelayMs: задержка между запросами одной корутины
- *  - maxConcurrency: максимальное число параллельных "входов" фуззера
- *  - maxPayloadsPerEndpoint: ограничение payload'ов на endpoint
+ * - enabled: включён/выключен
+ * - politenessDelayMs: задержка между запросами одной корутины
+ * - maxConcurrency: параллельные "потоки" фуззера
+ * - maxPayloadsPerEndpoint: ограничение payload'ов на endpoint
  *
- * Использует AuthService.performRequestWithAuth для единообразной аутентификации/логики retry.
+ * Использует AuthService.performRequestWithAuth для унифицированной аутентификации.
  */
 class FuzzerService(
     private val authService: AuthService,
@@ -26,48 +26,24 @@ class FuzzerService(
     private val maxPayloadsPerEndpoint: Int = 10
 ) {
 
-    // Базовый набор payloads — безопасно-агрессивные варианты (не destructive)
     private val basePayloads = listOf(
-        // SQLi-ish
-        "' OR '1'='1",
-        "\" OR \"1\"=\"1",
-        "' OR 1=1 --",
-        // XSS-ish
-        "<script>alert(1)</script>",
-        "\"><img src=x onerror=alert(1)>",
-        // Path traversal
-        "../etc/passwd",
-        "..\\windows\\system32\\drivers\\etc\\hosts",
-        // Lightweight command-like (non-destructive)
-        "`; ls -la`",
-        "; echo vuln",
-        // Template/expansion probes
-        "\${sleep 1}",
-        "\${reboot}"
+        "' OR '1'='1", "\" OR \"1\"=\"1", "' OR 1=1 --",
+        "<script>alert(1)</script>", "\"><img src=x onerror=alert(1)>",
+        "../etc/passwd", "..\\windows\\system32\\drivers\\etc\\hosts",
+        "`; ls -la`", "; echo vuln",
+        "\${sleep 1}", "\${reboot}"
     )
 
-    // Индикаторы в теле ответа, по которым считаем evidence
     private val evidenceIndicators = listOf(
-        "syntax error",
-        "sql",
-        "SQLException",
-        "SQL syntax",
-        "stacktrace",
-        "StackTrace",
-        "<script",
-        "alert(",
-        "root:x:",
-        "passwd",
-        "exception",
-        "unauthorized",
-        "constraint"
+        "syntax error", "sql", "SQLException", "SQL syntax",
+        "stacktrace", "StackTrace", "<script", "alert(", "root:x:", "passwd",
+        "exception", "unauthorized", "constraint"
     )
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     /**
-     * Основной внешний метод — фуззит endpoint по query/header/body (в зависимости от метода).
-     * Возвращает быстро, если fuzzer отключён.
+     * Основной метод — фуззит endpoint по query/header/body.
      */
     suspend fun fuzzEndpoint(
         url: String,
@@ -82,19 +58,17 @@ class FuzzerService(
         val sem = Semaphore(maxConcurrency)
 
         for (payload in payloads) {
-            // query param fuzz (GET)
+            // query param fuzz
             jobs += scope.async {
                 sem.withPermit {
                     delay(politenessDelayMs)
                     try {
                         fuzzQuery(url, payload, issues)
-                    } catch (_: Throwable) {
-                        // swallow; network errors reported elsewhere
-                    }
+                    } catch (_: Throwable) {}
                 }
             }
 
-            // header fuzz (any method)
+            // header fuzz
             jobs += scope.async {
                 sem.withPermit {
                     delay(politenessDelayMs)
@@ -104,7 +78,7 @@ class FuzzerService(
                 }
             }
 
-            // body fuzz only for methods that accept body
+            // body fuzz
             if (method in listOf(HttpMethod.Post, HttpMethod.Put, HttpMethod.Patch, HttpMethod.Delete)) {
                 jobs += scope.async {
                     sem.withPermit {
@@ -122,33 +96,54 @@ class FuzzerService(
 
     private suspend fun fuzzQuery(url: String, payload: String, issues: MutableList<Issue>) {
         val fuzzUrl = if (url.contains("?")) "$url&fuzz=${encode(payload)}" else "$url?fuzz=${encode(payload)}"
-        val resp = authService.performRequestWithAuth(HttpMethod.Get, fuzzUrl, "", "", null, issues)
-        val body = safeBodyText(resp)
-        analyzeResponseForFuzz(fuzzUrl, "GET", payload, body, resp?.status?.value ?: 0, issues)
+        val resp = authService.performRequestWithAuth(
+            method = HttpMethod.Get,
+            url = fuzzUrl,
+            clientId = "",
+            clientSecret = "",
+            openApi = null,
+            bodyBlock = null,
+            issues = issues
+        )
+        analyzeResponse(fuzzUrl, "GET", payload, safeBodyText(resp), resp?.status?.value ?: 0, issues)
     }
 
     private suspend fun fuzzHeader(url: String, method: HttpMethod, payload: String, issues: MutableList<Issue>) {
-        val resp = authService.performRequestWithAuth(method, url, "", "", {
-            header("X-Scanner-Fuzz", payload)
-            header("User-Agent", "ApiSecurityAnalyzer-Fuzzer/1.0")
-        }, issues)
-        val body = safeBodyText(resp)
-        analyzeResponseForFuzz(url, method.value, payload, body, resp?.status?.value ?: 0, issues)
+        val resp = authService.performRequestWithAuth(
+            method = method,
+            url = url,
+            clientId = "",
+            clientSecret = "",
+            openApi = null,
+            bodyBlock = {
+                header("X-Scanner-Fuzz", payload)
+                header("User-Agent", "ApiSecurityAnalyzer-Fuzzer/1.0")
+            },
+            issues = issues
+        )
+        analyzeResponse(url, method.value, payload, safeBodyText(resp), resp?.status?.value ?: 0, issues)
     }
 
     private suspend fun fuzzBody(url: String, method: HttpMethod, payload: String, issues: MutableList<Issue>) {
         val jsonBody = """{"__fuzz":"${escapeJson(payload)}"}"""
-        val resp = authService.performRequestWithAuth(method, url, "", "", {
-            contentType(ContentType.Application.Json)
-            setBody(jsonBody)
-            header("X-Scanner-Fuzz", "true")
-            header("User-Agent", "ApiSecurityAnalyzer-Fuzzer/1.0")
-        }, issues)
-        val body = safeBodyText(resp)
-        analyzeResponseForFuzz(url, method.value, payload, body, resp?.status?.value ?: 0, issues)
+        val resp = authService.performRequestWithAuth(
+            method = method,
+            url = url,
+            clientId = "",
+            clientSecret = "",
+            openApi = null,
+            bodyBlock = {
+                contentType(ContentType.Application.Json)
+                setBody(jsonBody)
+                header("X-Scanner-Fuzz", "true")
+                header("User-Agent", "ApiSecurityAnalyzer-Fuzzer/1.0")
+            },
+            issues = issues
+        )
+        analyzeResponse(url, method.value, payload, safeBodyText(resp), resp?.status?.value ?: 0, issues)
     }
 
-    private fun analyzeResponseForFuzz(
+    private fun analyzeResponse(
         targetUrl: String,
         method: String,
         payload: String,
@@ -156,17 +151,11 @@ class FuzzerService(
         statusCode: Int,
         issues: MutableList<Issue>
     ) {
-        // Собираем индикаторы
-        val found = mutableListOf<String>()
-        for (ind in evidenceIndicators) {
-            if (responseBody.contains(ind, ignoreCase = true)) found += ind
-        }
+        val found = evidenceIndicators.filter { responseBody.contains(it, ignoreCase = true) }
 
-        // XSS
         if (responseBody.contains("<script", ignoreCase = true) || responseBody.contains("alert(", ignoreCase = true)) {
             addIfNotDuplicate(
-                issues,
-                Issue(
+                issues, Issue(
                     type = "XSS",
                     severity = Severity.HIGH,
                     description = "Потенциальная XSS через $method $targetUrl — payload: ${short(payload)} — found: ${found.take(4)}"
@@ -174,38 +163,32 @@ class FuzzerService(
             )
         }
 
-        // SQLi / injection indicators
         if (found.any { it.contains("sql", ignoreCase = true) || it.contains("syntax", ignoreCase = true) || it.contains("SQLException", ignoreCase = true) }) {
             addIfNotDuplicate(
-                issues,
-                Issue(
+                issues, Issue(
                     type = "INJECTION",
                     severity = Severity.HIGH,
-                    description = "Потенциальная инъекция (SQL/прочие) $method $targetUrl — payload: ${short(payload)} — indicators: ${found.take(5)} — HTTP $statusCode"
+                    description = "Потенциальная инъекция $method $targetUrl — payload: ${short(payload)} — indicators: ${found.take(5)} — HTTP $statusCode"
                 )
             )
         }
 
-        // Path traversal evidence
         if (responseBody.contains("root:x:", ignoreCase = true) || responseBody.contains("passwd", ignoreCase = true)) {
             addIfNotDuplicate(
-                issues,
-                Issue(
+                issues, Issue(
                     type = "PATH_TRAVERSAL",
                     severity = Severity.HIGH,
-                    description = "Потенциальная утечка файлов при path traversal $method $targetUrl — payload: ${short(payload)}"
+                    description = "Потенциальная утечка файлов $method $targetUrl — payload: ${short(payload)}"
                 )
             )
         }
 
-        // Server error after payload may indicate vulnerability reached execution path
         if (statusCode >= 500) {
             addIfNotDuplicate(
-                issues,
-                Issue(
+                issues, Issue(
                     type = "SERVER_ERROR_ON_FUZZ",
                     severity = Severity.MEDIUM,
-                    description = "Сервер возвращает $statusCode после payload (возможная уязвимость) $method $targetUrl — payload: ${short(payload)}"
+                    description = "Сервер возвращает $statusCode после payload $method $targetUrl — payload: ${short(payload)}"
                 )
             )
         }
@@ -215,7 +198,7 @@ class FuzzerService(
     private fun encode(s: String) = java.net.URLEncoder.encode(s, "utf-8")
     private fun escapeJson(s: String) = s.replace("\"", "\\\"")
 
-    // Простая Semaphore реализация на Mutex.withLock
+    // Semaphore для ограничения concurrency
     private class Semaphore(private val permits: Int) {
         private val mutex = Mutex()
         private var available = permits
@@ -223,23 +206,27 @@ class FuzzerService(
         suspend fun <T> withPermit(block: suspend () -> T): T {
             while (true) {
                 var allowed = false
-                mutex.withLock {
-                    if (available > 0) {
-                        available--
-                        allowed = true
-                    }
-                }
+                mutex.withLock { if (available > 0) { available--; allowed = true } }
                 if (allowed) {
-                    try {
-                        return block()
-                    } finally {
-                        mutex.withLock { available++ }
-                    }
-                } else {
-                    // небольшая пауза прежде чем повторить попытку
-                    delay(10)
-                }
+                    try { return block() }
+                    finally { mutex.withLock { available++ } }
+                } else delay(10)
             }
+        }
+    }
+
+    private fun safeBodyText(resp: Any?): String {
+        return try {
+            val bodyMethod = resp?.javaClass?.methods?.firstOrNull { it.name == "bodyAsText" }
+            bodyMethod?.invoke(resp) as? String ?: ""
+        } catch (_: Exception) {
+            ""
+        }
+    }
+
+    private fun addIfNotDuplicate(issues: MutableList<Issue>, issue: Issue) {
+        if (issues.none { it.description == issue.description && it.type == issue.type }) {
+            issues.add(issue)
         }
     }
 }

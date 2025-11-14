@@ -7,14 +7,6 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import io.swagger.v3.oas.models.Operation
 
-/**
- * Встроенный набор чекеров.
- *
- * - enableFuzz: включает/выключает фуззинг (передаётся при создании плагина).
- * - politenessDelayMs / maxFuzzConcurrency / maxFuzzPayloads управляют поведением фуззера.
- *
- * Реализует CheckerPlugin.runCheck(...) (suspend).
- */
 class BuiltinCheckersPlugin(
     private val clientProvider: ClientProvider,
     private val authService: AuthService,
@@ -33,7 +25,6 @@ class BuiltinCheckersPlugin(
         maxConcurrency = maxFuzzConcurrency,
         maxPayloadsPerEndpoint = maxFuzzPayloads
     )
-
 
     private fun methodFromString(m: String): HttpMethod {
         return when (m.uppercase()) {
@@ -55,15 +46,22 @@ class BuiltinCheckersPlugin(
         issues: MutableList<Issue>
     ) {
         val httpMethod = methodFromString(method)
-
-        // endpoints to skip fuzzing (common health/metrics endpoints)
         val skipFuzzingCandidates = listOf("/health", "/metrics", "/ready", "/live")
 
         // === GET / HEAD ===
         if (method.equals("GET", true) || method.equals("HEAD", true)) {
             try {
-                val resp = authService.performRequestWithAuth(HttpMethod.Get, url, "", "", null, issues)
-                val code = resp?.status?.value ?: 0
+                val resp = authService.performRequestWithAuth(
+                    method = HttpMethod.Get,
+                    url = url,
+                    clientId = "",
+                    clientSecret = "",
+                    openApi = null,
+                    bodyBlock = null,
+                    issues = issues
+                )
+
+                val code = resp.status.value
                 val body = safeBodyText(resp)
 
                 if (code !in 200..399) {
@@ -80,7 +78,6 @@ class BuiltinCheckersPlugin(
                     )
                 }
 
-                // BOLA heuristic — URL содержит числовой id
                 if (Regex("/\\d+").containsMatchIn(url) || url.endsWith("/1")) {
                     addIfNotDuplicate(
                         issues,
@@ -95,7 +92,6 @@ class BuiltinCheckersPlugin(
                     )
                 }
 
-                // Excessive data exposure
                 if (containsSensitiveField(body)) {
                     addIfNotDuplicate(
                         issues,
@@ -110,30 +106,25 @@ class BuiltinCheckersPlugin(
                     )
                 }
 
-                // IDOR heuristic (calls shared helper)
                 checkIDOR(url, method, issues, "", "")
 
-                // Broken auth (if operation declares security or 401 response)
                 val requiresAuth = (operation.security != null && operation.security.isNotEmpty()) ||
                         (operation.responses?.keys?.contains("401") == true)
                 if (requiresAuth) {
                     checkBrokenAuth(clientProvider.client, url, method, issues)
                 }
 
-                // Rate limiting check
                 checkRateLimiting(url, httpMethod, issues, authService)
 
-                // Optional non-destructive fuzzing for GET
                 if (enableFuzz &&
                     skipFuzzingCandidates.none { url.endsWith(it, ignoreCase = true) } &&
                     operation.extensions?.get("x-scan-disabled") != true
                 ) {
                     try {
                         fuzzer.fuzzEndpoint(url, HttpMethod.Get, issues)
-                    } catch (_: Exception) {
-                        // network/errors are collected elsewhere, swallow here
-                    }
+                    } catch (_: Exception) {}
                 }
+
             } catch (e: Exception) {
                 addIfNotDuplicate(
                     issues,
@@ -156,36 +147,31 @@ class BuiltinCheckersPlugin(
                 operation.requestBody?.content?.get("application/json")?.schema?.let { schema ->
                     sampleBodies += buildSampleJsonFromSchema(schema)
                 }
-            } catch (_: Exception) {
-                // ignore schema parsing errors for sample generation
-            }
+            } catch (_: Exception) {}
 
-            // built-in probes + generated fuzz payloads
             sampleBodies += """{"__scanner_probe":true,"role":"admin","isAdmin":true}"""
             sampleBodies += generateFuzzPayloads().take(6).toList()
-            if (sampleBodies.isEmpty()) {
-                sampleBodies += """{"test":"scanner"}"""
-            }
+            if (sampleBodies.isEmpty()) sampleBodies += """{"test":"scanner"}"""
 
             for (body in sampleBodies) {
                 try {
                     val resp = authService.performRequestWithAuth(
-                        httpMethod,
-                        url,
-                        "",
-                        "",
-                        {
+                        method = httpMethod,
+                        url = url,
+                        clientId = "",
+                        clientSecret = "",
+                        openApi = null,
+                        bodyBlock = {
                             contentType(ContentType.Application.Json)
                             setBody(body)
                             header("X-Scanner-Probe", "true")
                         },
-                        issues
+                        issues = issues
                     )
 
-                    val code = resp?.status?.value ?: 0
+                    val code = resp.status.value
                     val respBody = safeBodyText(resp)
 
-                    // Mass assignment heuristic (write methods)
                     if ((method.equals("POST", true) || method.equals("PUT", true)) && code in 200..299) {
                         if (!respBody.contains("error", true) && !respBody.contains("validation", true)) {
                             if (body.contains("isAdmin") || body.contains("role")) {
@@ -204,7 +190,6 @@ class BuiltinCheckersPlugin(
                         }
                     }
 
-                    // Insufficient logging (stack traces leaked)
                     if (respBody.contains("Exception", true) || respBody.contains("StackTrace", true) || respBody.contains("java.lang", true)) {
                         addIfNotDuplicate(
                             issues,
@@ -219,7 +204,6 @@ class BuiltinCheckersPlugin(
                         )
                     }
 
-                    // Quick injection heuristic from sample bodies
                     if ((body.contains("' OR '1'='1") || body.contains("<script") || body.contains("..\\")) &&
                         (respBody.contains("syntax", true) || respBody.contains("sql", true) || respBody.contains("exception", true))
                     ) {
@@ -250,19 +234,15 @@ class BuiltinCheckersPlugin(
                 }
             }
 
-            // Rate limiting for write methods
             checkRateLimiting(url, httpMethod, issues, authService)
 
-            // Optional fuzzing for body-capable methods
             if (enableFuzz &&
                 skipFuzzingCandidates.none { url.endsWith(it, ignoreCase = true) } &&
                 operation.extensions?.get("x-scan-disabled") != true
             ) {
                 try {
                     fuzzer.fuzzEndpoint(url, httpMethod, issues)
-                } catch (_: Exception) {
-                    // swallow
-                }
+                } catch (_: Exception) {}
             }
         }
 
@@ -271,8 +251,16 @@ class BuiltinCheckersPlugin(
         for (suf in adminCandidates) {
             try {
                 val adminUrl = url.trimEnd('/') + suf
-                val resp = authService.performRequestWithAuth(HttpMethod.Get, adminUrl, "", "", null, issues)
-                if (resp?.status?.value in 200..299) {
+                val resp = authService.performRequestWithAuth(
+                    method = HttpMethod.Get,
+                    url = adminUrl,
+                    clientId = "",
+                    clientSecret = "",
+                    openApi = null,
+                    bodyBlock = null,
+                    issues = issues
+                )
+                if (resp.status.value in 200..299) {
                     addIfNotDuplicate(
                         issues,
                         Issue(
@@ -284,16 +272,22 @@ class BuiltinCheckersPlugin(
                         )
                     )
                 }
-            } catch (_: Exception) {
-                // ignore
-            }
+            } catch (_: Exception) {}
         }
 
         // === Quick injection via query param (API8) ===
         try {
             val injUrl = if (url.contains("?")) "$url&__scan_inj=' OR '1'='1" else "$url?__scan_inj=' OR '1'='1"
-            val resp = authService.performRequestWithAuth(HttpMethod.Get, injUrl, "", "", null, issues)
-            if (resp?.status?.value in 200..299) {
+            val resp = authService.performRequestWithAuth(
+                method = HttpMethod.Get,
+                url = injUrl,
+                clientId = "",
+                clientSecret = "",
+                openApi = null,
+                bodyBlock = null,
+                issues = issues
+            )
+            if (resp.status.value in 200..299) {
                 val b = safeBodyText(resp)
                 if (b.contains("sql", true) || b.contains("syntax", true) || b.contains("exception", true)) {
                     addIfNotDuplicate(
@@ -309,17 +303,23 @@ class BuiltinCheckersPlugin(
                     )
                 }
             }
-        } catch (_: Exception) {
-            // ignore
-        }
+        } catch (_: Exception) {}
 
         // === Security Misconfiguration (API7) ===
         val docsPaths = listOf("/swagger", "/swagger-ui", "/docs", "/redoc")
         for (docPath in docsPaths) {
             try {
                 val docUrl = url.trimEnd('/') + docPath
-                val resp = authService.performRequestWithAuth(HttpMethod.Get, docUrl, "", "", null, issues)
-                if (resp?.status?.value in 200..299) {
+                val resp = authService.performRequestWithAuth(
+                    method = HttpMethod.Get,
+                    url = docUrl,
+                    clientId = "",
+                    clientSecret = "",
+                    openApi = null,
+                    bodyBlock = null,
+                    issues = issues
+                )
+                if (resp.status.value in 200..299) {
                     addIfNotDuplicate(
                         issues,
                         Issue(
@@ -331,9 +331,7 @@ class BuiltinCheckersPlugin(
                         )
                     )
                 }
-            } catch (_: Exception) {
-                // ignore
-            }
+            } catch (_: Exception) {}
         }
 
         // === Improper Assets Management (API9) ===
@@ -341,8 +339,16 @@ class BuiltinCheckersPlugin(
         for (suf in legacyCandidates) {
             try {
                 val legacyUrl = url.trimEnd('/') + suf
-                val resp = authService.performRequestWithAuth(HttpMethod.Get, legacyUrl, "", "", null, issues)
-                if (resp?.status?.value in 200..299) {
+                val resp = authService.performRequestWithAuth(
+                    method = HttpMethod.Get,
+                    url = legacyUrl,
+                    clientId = "",
+                    clientSecret = "",
+                    openApi = null,
+                    bodyBlock = null,
+                    issues = issues
+                )
+                if (resp.status.value in 200..299) {
                     addIfNotDuplicate(
                         issues,
                         Issue(
@@ -354,24 +360,24 @@ class BuiltinCheckersPlugin(
                         )
                     )
                 }
-            } catch (_: Exception) {
-                // ignore
-            }
+            } catch (_: Exception) {}
         }
     }
 
-    /**
-     * Простейшая проверка rate limiting: шлём небольшой burst и смотрим на 429.
-     * Использует authService для унифицированной логики (401 retry и т.д.).
-     */
     private suspend fun checkRateLimiting(url: String, method: HttpMethod, issues: MutableList<Issue>, authService: AuthService) {
         try {
             var triggered = false
             repeat(5) {
-                val resp = authService.performRequestWithAuth(method, url, "", "", null, issues)
-                if (resp?.status?.value == 429) {
-                    triggered = true
-                }
+                val resp = authService.performRequestWithAuth(
+                    method = method,
+                    url = url,
+                    clientId = "",
+                    clientSecret = "",
+                    openApi = null,
+                    bodyBlock = null,
+                    issues = issues
+                )
+                if (resp.status.value == 429) triggered = true
             }
             if (!triggered) {
                 addIfNotDuplicate(
@@ -385,8 +391,6 @@ class BuiltinCheckersPlugin(
                     )
                 )
             }
-        } catch (_: Exception) {
-            // ignore network issues here
-        }
+        } catch (_: Exception) {}
     }
 }

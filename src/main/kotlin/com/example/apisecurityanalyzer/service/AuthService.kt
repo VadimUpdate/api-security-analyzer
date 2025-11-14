@@ -9,15 +9,11 @@ import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.client.plugins.*
 import io.ktor.http.*
+import io.swagger.v3.oas.models.OpenAPI
+import io.swagger.v3.oas.models.media.StringSchema
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-/**
- * Вынесённая логика аутентификации + retry на 401.
- *
- * Сохраняет поведение оригинала: хранит authToken, при 401 пытается получить новый токен,
- * использует tokenMutex для синхронизации.
- */
 class AuthService(private val clientProvider: ClientProvider) {
     private val mapper = jacksonObjectMapper()
     private val client: HttpClient get() = clientProvider.client
@@ -26,15 +22,12 @@ class AuthService(private val clientProvider: ClientProvider) {
     var authToken: String? = null
     private val tokenMutex = Mutex()
 
-    /**
-     * Выполнить запрос с возможной авторизацией. При 401 — попытка обновить токен (best-effort).
-     * Возвращает HttpResponse или пробрасывает исключение (как в оригинале).
-     */
     suspend fun performRequestWithAuth(
         method: HttpMethod,
         url: String,
-        authClientId: String,
-        authClientSecret: String,
+        clientId: String,
+        clientSecret: String,
+        openApi: OpenAPI?,
         bodyBlock: (HttpRequestBuilder.() -> Unit)? = null,
         issues: MutableList<Issue>
     ): HttpResponse {
@@ -50,11 +43,10 @@ class AuthService(private val clientProvider: ClientProvider) {
         try {
             return doRequest(cur)
         } catch (e: ResponseException) {
-            val status = try { (e.response as? HttpResponse)?.status?.value } catch (_: Exception) { null }
+            val status = try { e.response.status.value } catch (_: Exception) { null }
             if (status == 401) {
-                // попытаться получить новый токен (synchronized)
                 tokenMutex.withLock {
-                    val newToken = obtainBearerTokenFromSpecOrFallback(null, url, authClientId, authClientSecret, issues)
+                    val newToken = obtainBearerToken(openApi, url, clientId, clientSecret, issues)
                     if (!newToken.isNullOrBlank()) authToken = newToken
                 }
                 return doRequest(authToken)
@@ -62,33 +54,55 @@ class AuthService(private val clientProvider: ClientProvider) {
         }
     }
 
-    /**
-     * Best-effort получение client_credentials токена с /oauth/token на базовом URL.
-     * Возвращает access_token или null (и добавляет ISSUE).
-     */
-    suspend fun obtainBearerTokenFromSpecOrFallback(
-        openApi: io.swagger.v3.oas.models.OpenAPI?,
+    suspend fun obtainBearerToken(
+        openApi: OpenAPI?,
         baseUrlCandidate: String,
-        clientId: String,
-        clientSecret: String,
+        fallbackClientId: String,
+        fallbackClientSecret: String,
         issues: MutableList<Issue>
     ): String? {
-        return try {
-            val tokenUrl = baseUrlCandidate.trimEnd('/') + "/oauth/token"
+        try {
+            // ищем POST path с application/x-www-form-urlencoded
+            val tokenPath = openApi?.paths?.entries?.find { (path, item) ->
+                item.post?.requestBody?.content?.keys?.any {
+                    it.contains("application/x-www-form-urlencoded", ignoreCase = true)
+                } == true
+            }?.key ?: "/oauth/token" // fallback
+
+            val tokenUrl = baseUrlCandidate.trimEnd('/') + tokenPath
+
+            // параметры из OpenAPI, если указаны
+            val formParams = Parameters.build {
+                val reqBody = openApi?.paths?.get(tokenPath)?.post?.requestBody
+                val schemaProps = reqBody?.content
+                    ?.get("application/x-www-form-urlencoded")
+                    ?.schema?.properties ?: emptyMap<String, io.swagger.v3.oas.models.media.Schema<*>>()
+
+                append(
+                    "grant_type",
+                    (schemaProps["grant_type"] as? StringSchema)?.default ?: "client_credentials"
+                )
+                append(
+                    "client_id",
+                    (schemaProps["client_id"] as? StringSchema)?.default ?: fallbackClientId
+                )
+                append(
+                    "client_secret",
+                    (schemaProps["client_secret"] as? StringSchema)?.default ?: fallbackClientSecret
+                )
+            }
+
             val resp: HttpResponse = client.submitForm(
                 url = tokenUrl,
-                formParameters = Parameters.build {
-                    append("grant_type", "client_credentials")
-                    append("client_id", clientId)
-                    append("client_secret", clientSecret)
-                },
+                formParameters = formParams,
                 encodeInQuery = false
             )
+
             val body = resp.bodyAsText()
-            mapper.readTree(body).get("access_token")?.asText()
+            return mapper.readTree(body).get("access_token")?.asText()
+
         } catch (e: Exception) {
-            addIfNotDuplicate(
-                issues,
+            issues.add(
                 Issue(
                     type = "TOKEN_ERROR",
                     path = baseUrlCandidate,
@@ -98,11 +112,7 @@ class AuthService(private val clientProvider: ClientProvider) {
                     evidence = e.message ?: "unknown"
                 )
             )
-            null
+            return null
         }
-    }
-
-    private fun addIfNotDuplicate(issues: MutableList<Issue>, i: Issue) {
-        if (issues.none { it.type == i.type && it.path == i.path && it.method == i.method }) issues += i
     }
 }
