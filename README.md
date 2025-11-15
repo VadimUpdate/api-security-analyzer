@@ -131,8 +131,8 @@
 |----------|-----|--------------|-----------|
 | `specUrl` | string | Да | URL OpenAPI спецификации |
 | `targetUrl` | string | Да | Базовый URL тестируемого API |
-| `maxConcurrency` | number | Нет | Максимальное количество одновременных запросов (по умолчанию: 5) |
-| `politenessDelayMs` | number | Нет | Задержка между запросами в миллисекундах (по умолчанию: 100) |
+| `maxConcurrency` | number | Нет | Максимальное количество одновременных запросов |
+| `politenessDelayMs` | number | Нет | Задержка между запросами в миллисекундах |
 | `authClientId` | string | Нет | Client ID для OAuth аутентификации |
 | `authClientSecret` | string | Нет | Client Secret для OAuth аутентификации |
 | `enableFuzzing` | boolean | Нет | Включить фаззинг-тесты (по умолчанию: false) |
