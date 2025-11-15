@@ -1,4 +1,3 @@
-```markdown
 # API Security Analyzer
 
 > **Проект реализован в рамках хакатона VTB API 2025**  
