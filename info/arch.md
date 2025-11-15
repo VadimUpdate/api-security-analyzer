@@ -1,4 +1,3 @@
-```markdown
 ## 🏗 Архитектура решения
 
 ### Общая схема архитектуры
@@ -36,25 +35,37 @@
 
 ## 🔄 Основной workflow решения
 
-### Этапы работы:
+### 1. Инициализация анализа
+```
+Пользователь → REST API → Analysis Orchestrator
+    ↓
+OpenAPI Parser (загрузка спецификации)
+    ↓
+Auth Manager (получение токенов)
+```
 
-**1. Инициализация анализа**
-- Пользователь → REST API → Analysis Orchestrator
-- OpenAPI Parser (загрузка спецификации) 
-- Auth Manager (получение токенов)
+### 2. Подготовка и сканирование
+```
+Analysis Orchestrator → Endpoint Generator
+    ↓
+Concurrency Manager (корутины)
+    ↓
+┌─────────────────────────────────────────┐
+│ Параллельное выполнение проверок:       │
+│ • Security Scanner (OWASP тесты)        │
+│ • Contract Validator (сравнение с spec) │
+│ • Fuzzing Engine (нестандартные запросы)│
+└─────────────────────────────────────────┘
+```
 
-**2. Подготовка и сканирование**
-- Analysis Orchestrator → Endpoint Generator
-- Concurrency Manager (корутины)
-- **Параллельное выполнение проверок:**
-  - Security Scanner (OWASP тесты)
-  - Contract Validator (сравнение с spec)
-  - Fuzzing Engine (нестандартные запросы)
-
-**3. Формирование результатов**
-- Сбор результатов → Issue Aggregator
-- Report Generator (анализ и классификация)
-- Пользователь ← JSON отчет
+### 3. Формирование результатов
+```
+Сбор результатов → Issue Aggregator
+    ↓
+Report Generator (анализ и классификация)
+    ↓
+Пользователь ← JSON отчет
+```
 
 ## 💡 Ключевые архитектурные особенности
 
