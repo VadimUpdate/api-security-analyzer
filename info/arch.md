@@ -161,26 +161,51 @@ class FuzzingEngine {
     )
 }
 ```
-#### 🛡 Защитные механизмы
+#### 🎯 Архитектура фаззинга
 
-##### Безопасное выполнение
 ```kotlin
-try { fuzzQuery(url, payload, issues) } catch (_: Throwable) {}
-// Игнорируем ошибки сети/таймауты чтобы не прерывать сканирование
+class FuzzerService(
+    private val authService: AuthService,
+    private val clientId: String,
+    private val clientSecret: String,
+    private val enabled: Boolean = true,
+    private val politenessDelayMs: Long = 150,
+    private val maxConcurrency: Int = 4,
+    private val maxPayloadsPerEndpoint: Int = 10
+)
 ```
 
-##### Предотвращение дубликатов
+#### 📋 База payload-ов
+
 ```kotlin
-private fun addIfNotDuplicate(list: MutableList<Issue>, issue: Issue) {
-    if (list.none { it.type == issue.type && it.path == issue.path && it.method == issue.method }) {
-        list += issue
-    }
-}
+private val basePayloads = listOf(
+    // SQL Injection
+    "' OR '1'='1", "\" OR \"1\"=\"1", "' OR 1=1 --",
+    
+    // XSS
+    "<script>alert(1)</script>", "\"><img src=x onerror=alert(1)>",
+    
+    // Path Traversal  
+    "../etc/passwd", "..\\windows\\system32\\drivers\\etc\\hosts",
+    
+    // Command Injection
+    "; ls -la", "; echo vuln",
+    
+    // Template Injection
+    "\${sleep 1}", "\${reboot}"
+)
 ```
 
-##### Политика вежливости
+#### 🔍 Индикаторы уязвимостей
+
 ```kotlin
-delay(politenessDelayMs) // 150ms между запросами
+private val evidenceIndicators = listOf(
+    "syntax error", "sql", "SQLException", "SQL syntax",    // SQL Injection
+    "stacktrace", "StackTrace", "exception",                // Information Disclosure
+    "<script", "alert(",                                    // XSS
+    "root:x:", "passwd",                                    // Path Traversal
+    "unauthorized", "constraint"                            // Access Control
+)
 ```
 
 #### 🎯 Особенности реализации
