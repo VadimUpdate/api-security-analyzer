@@ -71,6 +71,18 @@
 }
 ```
 
+## 🛠 Параметры запроса
+
+| Параметр | Тип | Обязательный | Описание |
+|----------|-----|--------------|-----------|
+| `specUrl` | string | Да | URL OpenAPI спецификации |
+| `targetUrl` | string | Да | Базовый URL тестируемого API |
+| `maxConcurrency` | number | Нет | Максимальное количество одновременных запросов |
+| `politenessDelayMs` | number | Нет | Задержка между запросами в миллисекундах |
+| `authClientId` | string | Нет | Client ID для OAuth аутентификации |
+| `authClientSecret` | string | Нет | Client Secret для OAuth аутентификации |
+| `enableFuzzing` | boolean | Нет | Включить фаззинг-тесты (по умолчанию: false) |
+
 ## 📊 Пример ответа
 
 После успешного анализа вы получите отчет в формате JSON:
@@ -124,18 +136,6 @@
   ]
 }
 ```
-
-## 🛠 Параметры запроса
-
-| Параметр | Тип | Обязательный | Описание |
-|----------|-----|--------------|-----------|
-| `specUrl` | string | Да | URL OpenAPI спецификации |
-| `targetUrl` | string | Да | Базовый URL тестируемого API |
-| `maxConcurrency` | number | Нет | Максимальное количество одновременных запросов |
-| `politenessDelayMs` | number | Нет | Задержка между запросами в миллисекундах |
-| `authClientId` | string | Нет | Client ID для OAuth аутентификации |
-| `authClientSecret` | string | Нет | Client Secret для OAuth аутентификации |
-| `enableFuzzing` | boolean | Нет | Включить фаззинг-тесты (по умолчанию: false) |
 
 ## 🛡 Обнаруживаемые уязвимости
 
