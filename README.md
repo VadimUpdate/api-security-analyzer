@@ -58,7 +58,7 @@
 **URL:** `http://localhost:8080/api/analyze`  
 **Content-Type:** `application/json`
 
-**Тело запроса (Body):**
+**Запрос (Body):**
 ```json
 {
   "specUrl": "https://vbank.open.bankingapi.ru/openapi.json",
