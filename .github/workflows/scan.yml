@@ -1,0 +1,54 @@
+name: API Security Scan
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+
+      - name: Build project
+        run: ./gradlew clean bootJar
+
+      - name: Build Docker image
+        run: docker build -t api-analyzer:latest .
+
+      - name: Run API Analyzer container
+        run: |
+          docker run -d --name api-analyzer -p 8080:8080 api-analyzer:latest
+          sleep 10  # Ждем поднятия сервиса
+
+      - name: Run scan via REST API
+        run: |
+          curl -X POST http://localhost:8080/api/scan \
+          -H "Content-Type: application/json" \
+          -d '{
+                "specUrl": "https://vbank.open.bankingapi.ru/openapi.json",
+                "targetUrl": "https://vbank.open.bankingapi.ru",
+                "clientId": "team186",
+                "clientSecret": "sSwEucZD6NXXi0eC0Fov7sFJD9iFKWOl",
+                "enableFuzzing": false,
+                "maxConcurrency": 5,
+                "politenessDelayMs": 100
+              }' \
+          -o scan-report.json
+
+      - name: Upload scan report
+        uses: actions/upload-artifact@v3
+        with:
+          name: scan-report
+          path: scan-report.json
+
+      - name: Stop container
+        run: docker stop api-analyzer
