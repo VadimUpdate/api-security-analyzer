@@ -9227,3 +9227,54 @@ If you expect serialized body, please check that you have installed the correspo
 2025-11-16 08:52:14 [http-nio-8080-exec-2] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 0 ms
 2025-11-16 08:52:14 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Loading OpenAPI spec from https://vbank.open.bankingapi.ru/openapi.json
 2025-11-16 08:52:15 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Bank token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZWFtMTg2IiwiY2xpZW50X2lkIjoidGVhbTE4NiIsInR5cGUiOiJ0ZWFtIiwiaXNzIjoidmJhbmsiLCJhdWQiOiJvcGVuYmFua2luZyIsImV4cCI6MTc2MzM1ODczNX0.0K7qr1Uko5W0HhF26gEUIe0BDbWRmXzHuu8_rqKm5bs, Consent ID: team186-consent-id
+2025-11-16 08:59:06 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 16048 (C:\Users\user\IdeaProjects\a\api-security-analyzer-main\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\a\api-security-analyzer-main)
+2025-11-16 08:59:06 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-16 08:59:07 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-16 08:59:07 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-16 08:59:07 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-16 08:59:07 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-16 08:59:07 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-16 08:59:07 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 722 ms
+2025-11-16 08:59:07 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-16 08:59:07 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-16 08:59:07 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-16 08:59:07 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 1.535 seconds (process running for 1.871)
+2025-11-16 08:59:09 [http-nio-8080-exec-4] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-16 08:59:09 [http-nio-8080-exec-4] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-11-16 08:59:09 [http-nio-8080-exec-4] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
+2025-11-16 08:59:10 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Loading OpenAPI spec from https://vbank.open.bankingapi.ru/openapi.json
+2025-11-16 08:59:11 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Bank token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZWFtMTg2IiwiY2xpZW50X2lkIjoidGVhbTE4NiIsInR5cGUiOiJ0ZWFtIiwiaXNzIjoidmJhbmsiLCJhdWQiOiJvcGVuYmFua2luZyIsImV4cCI6MTc2MzM1OTE1MH0.uqin1HONnvfSw6T2isnmk1c_xD6oB7ndABsmNRrih9I, Consent ID: team186-consent-id
+2025-11-16 09:01:09 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 13376 (C:\Users\user\IdeaProjects\a\api-security-analyzer-main\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\a\api-security-analyzer-main)
+2025-11-16 09:01:09 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-16 09:01:10 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-16 09:01:10 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-16 09:01:10 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-16 09:01:10 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-16 09:01:10 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-16 09:01:10 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 870 ms
+2025-11-16 09:01:11 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-16 09:01:11 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-16 09:01:11 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-16 09:01:11 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 1.826 seconds (process running for 2.151)
+2025-11-16 09:01:17 [http-nio-8080-exec-3] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-16 09:01:17 [http-nio-8080-exec-3] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-11-16 09:01:17 [http-nio-8080-exec-3] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 0 ms
+2025-11-16 09:01:18 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Loading OpenAPI spec from https://vbank.open.bankingapi.ru/openapi.json
+2025-11-16 09:01:19 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Bank token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZWFtMTg2IiwiY2xpZW50X2lkIjoidGVhbTE4NiIsInR5cGUiOiJ0ZWFtIiwiaXNzIjoidmJhbmsiLCJhdWQiOiJvcGVuYmFua2luZyIsImV4cCI6MTc2MzM1OTI3OH0.-KugPR57-AaO58IDi3Q-0TNZcf-Pzr1544y9acSULkQ, Consent ID: team186-consent-id
+2025-11-16 09:06:44 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 10316 (C:\Users\user\IdeaProjects\a\api-security-analyzer-main\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\a\api-security-analyzer-main)
+2025-11-16 09:06:44 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-16 09:06:45 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-16 09:06:45 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-16 09:06:45 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-16 09:06:45 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-16 09:06:45 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-16 09:06:45 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 826 ms
+2025-11-16 09:06:45 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-16 09:06:45 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-16 09:06:45 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-16 09:06:45 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 1.747 seconds (process running for 2.099)
+2025-11-16 09:06:48 [http-nio-8080-exec-1] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-16 09:06:48 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-11-16 09:06:48 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
+2025-11-16 09:06:48 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Loading OpenAPI spec from https://vbank.open.bankingapi.ru/openapi.json
+2025-11-16 09:06:49 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Bank token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZWFtMTg2IiwiY2xpZW50X2lkIjoidGVhbTE4NiIsInR5cGUiOiJ0ZWFtIiwiaXNzIjoidmJhbmsiLCJhdWQiOiJvcGVuYmFua2luZyIsImV4cCI6MTc2MzM1OTYwOX0.v_sfN611fEB24Uog4INtC3QLTbCXYxvzrPu5pk8mzUs, Consent ID: team186-consent-id

@@ -86,18 +86,17 @@ class ApiScanService(
         val pluginRegistry = PluginRegistry().apply {
             register(
                 BuiltinCheckersPlugin(
-                    fuzzer = FuzzerService(
-                        authService = authService,
-                        bankBaseUrl = userInput.targetUrl.trimEnd('/'),
-                        clientId = userInput.clientId,
-                        clientSecret = userInput.clientSecret
-                    ),
+                    clientProvider = clientProvider,
                     authService = authService,
-                    enableFuzzing = userInput.enableFuzzing
+                    bankBaseUrl = userInput.targetUrl.trimEnd('/'),
+                    clientId = userInput.clientId,
+                    clientSecret = userInput.clientSecret,
+                    enableFuzzing = userInput.enableFuzzing,
+                    politenessDelayMs = userInput.politenessDelayMs.toLong(),
+                    maxConcurrency = userInput.maxConcurrency
                 )
             )
         }
-
 
         // Parallel scanning
         val semaphore = Semaphore(userInput.maxConcurrency)
