@@ -10,3 +10,23 @@
 <img width="1273" height="851" alt="image" src="https://github.com/user-attachments/assets/60c5a960-25ca-44e6-9183-c84f08eff79a" />
 <img width="1550" height="801" alt="image" src="https://github.com/user-attachments/assets/fd96b3c4-04c5-445a-8334-04197498310a" />
 <img width="1550" height="801" alt="image" src="https://github.com/user-attachments/assets/1dd95ee6-876c-4399-9c89-40bdd059a422" />
+
+
+
+
+
+src/main/java/com/example/apianalyzer/
+├── core/                  – загрузка/парсинг OpenAPI, ApiScanService, SecurityScanner
+├── service/               – AuthService, ClientProvider, FuzzerService
+├── plugin/                – CheckerPlugin, BuiltinCheckersPlugin, PluginRegistry
+├── util/                  – вспомогательные утилиты: Utils, AccessControlHeuristics
+├── deep/                  – DeepSchemaAnalyzer, CorrelationEngine, TLS/OpenAPI анализ
+├── web/                   – Spring Boot REST + static (index.html)
+├── integration/           – интеграции с CI/CD, TLSAnalyzer, GOSTGateway
+
+src/main/resources/static/index.html   – фронт для загрузки спецификаций и просмотра отчётов
+src/test/java/com/example/apianalyzer/ – smoke-тесты (VirtualBank, LargeAPI и др.)
+scanners-presentation.html             – документация по встроенным чекерам
+
+Основное ядро: ApiScanService (аналог SecurityScanner).  
+Он получает OpenAPI через OpenAPIV3Parser, запускает чекеры параллельно (Virtual Threads / coroutines), объединяет результаты, применяет дедупликацию и вычисляет метрики (SmartAnalyzer, ConfidenceCalculator).
