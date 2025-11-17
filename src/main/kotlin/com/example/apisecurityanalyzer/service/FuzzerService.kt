@@ -19,7 +19,8 @@ class FuzzerService(
     private val maxConcurrency: Int = 4,
     private val maxPayloadsPerEndpoint: Int = 10
 ) {
-
+    // публичные свойства для установки извне
+    var bankToken: String = ""
     var consentId: String = ""
 
     private val basePayloads = listOf(
@@ -62,25 +63,38 @@ class FuzzerService(
     ) {
         if (!enabled || url.endsWith("/auth/bank-token")) return
 
-        val bankToken = authService.getBankToken(bankBaseUrl, clientId, clientSecret, issues)
         val payloads = (allowedPayloads ?: basePayloads).take(maxPayloadsPerEndpoint)
         val sem = Semaphore(maxConcurrency)
         val jobs = mutableListOf<Deferred<Unit>>()
 
         for (payload in payloads) {
-            jobs += scope.async { sem.withPermit { delay(politenessDelayMs); try { fuzzQuery(url, payload, issues, bankToken) } catch (_: Throwable) {} } }
-            jobs += scope.async { sem.withPermit { delay(politenessDelayMs); try { fuzzHeader(url, method, payload, issues, bankToken) } catch (_: Throwable) {} } }
+            jobs += scope.async {
+                sem.withPermit {
+                    delay(politenessDelayMs)
+                    try { fuzzQuery(url, payload, issues) } catch (_: Throwable) {}
+                }
+            }
+            jobs += scope.async {
+                sem.withPermit {
+                    delay(politenessDelayMs)
+                    try { fuzzHeader(url, method, payload, issues) } catch (_: Throwable) {}
+                }
+            }
             if (method in listOf(HttpMethod.Post, HttpMethod.Put, HttpMethod.Patch, HttpMethod.Delete)) {
-                jobs += scope.async { sem.withPermit { delay(politenessDelayMs); try { fuzzBody(url, method, payload, issues, bankToken) } catch (_: Throwable) {} } }
+                jobs += scope.async {
+                    sem.withPermit {
+                        delay(politenessDelayMs)
+                        try { fuzzBody(url, method, payload, issues) } catch (_: Throwable) {}
+                    }
+                }
             }
         }
 
         jobs.awaitAll()
     }
 
-    private suspend fun fuzzQuery(url: String, payload: String, issues: MutableList<Issue>, bankToken: String) {
+    private suspend fun fuzzQuery(url: String, payload: String, issues: MutableList<Issue>) {
         val fuzzUrl = if (url.contains("?")) "$url&fuzz=${encode(payload)}" else "$url?fuzz=${encode(payload)}"
-
         val resp = authService.performRequestWithAuth(
             method = HttpMethod.Get,
             url = fuzzUrl,
@@ -94,7 +108,7 @@ class FuzzerService(
         analyzeResponseForFuzz(fuzzUrl, "GET", payload, safeBodyText(resp), resp.status.value, issues)
     }
 
-    private suspend fun fuzzHeader(url: String, method: HttpMethod, payload: String, issues: MutableList<Issue>, bankToken: String) {
+    private suspend fun fuzzHeader(url: String, method: HttpMethod, payload: String, issues: MutableList<Issue>) {
         val resp = authService.performRequestWithAuth(
             method = method,
             url = url,
@@ -111,7 +125,7 @@ class FuzzerService(
         analyzeResponseForFuzz(url, method.value, payload, safeBodyText(resp), resp.status.value, issues)
     }
 
-    private suspend fun fuzzBody(url: String, method: HttpMethod, payload: String, issues: MutableList<Issue>, bankToken: String) {
+    private suspend fun fuzzBody(url: String, method: HttpMethod, payload: String, issues: MutableList<Issue>) {
         val jsonBody = """{"__fuzz":"${escapeJson(payload)}"}"""
         val resp = authService.performRequestWithAuth(
             method = method,

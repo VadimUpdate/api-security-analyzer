@@ -10054,3 +10054,322 @@ java.lang.IllegalStateException: Не удалось получить bankToken
 2025-11-17 14:35:10 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/.well-known/jwks.json
 2025-11-17 14:35:10 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/
 2025-11-17 14:35:11 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/health
+2025-11-17 18:27:29 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 23644 (C:\Users\user\IdeaProjects\a\api-security-analyzer\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\a\api-security-analyzer)
+2025-11-17 18:27:29 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-17 18:27:29 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-17 18:27:29 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-17 18:27:29 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-17 18:27:29 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-17 18:27:29 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-17 18:27:29 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 803 ms
+2025-11-17 18:27:30 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-17 18:27:30 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-17 18:27:30 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-17 18:27:30 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 1.769 seconds (process running for 2.14)
+2025-11-17 18:27:57 [http-nio-8080-exec-3] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-17 18:27:57 [http-nio-8080-exec-3] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-11-17 18:27:57 [http-nio-8080-exec-3] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
+2025-11-17 18:27:57 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Loading OpenAPI spec from https://vbank.open.bankingapi.ru/openapi.json
+2025-11-17 18:28:00 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Bank token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZWFtMTg2IiwiY2xpZW50X2lkIjoidGVhbTE4NiIsInR5cGUiOiJ0ZWFtIiwiaXNzIjoidmJhbmsiLCJhdWQiOiJvcGVuYmFua2luZyIsImV4cCI6MTc2MzQ3OTY4MH0.0ZN-QFWr0GBWdK--tyuHnqbY2dHu_3tvyoyh5MSqhgo, Consent ID: consent-55a63eb7fcec
+2025-11-17 18:28:01 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts
+2025-11-17 18:28:01 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/auth/bank-token
+2025-11-17 18:28:02 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/accounts
+2025-11-17 18:28:03 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts/59
+2025-11-17 18:28:04 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts/82/balances
+2025-11-17 18:28:05 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts/18/transactions
+2025-11-17 18:28:06 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/accounts/56/status
+2025-11-17 18:28:07 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/accounts/85/close
+2025-11-17 18:28:08 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/cards
+2025-11-17 18:28:09 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/cards
+2025-11-17 18:28:10 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/cards/45
+2025-11-17 18:28:10 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/cards/69
+2025-11-17 18:28:11 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/cards/25/status
+2025-11-17 18:28:12 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/cards/49/limits
+2025-11-17 18:28:12 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/account-consents/request
+2025-11-17 18:28:13 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/account-consents/93
+2025-11-17 18:28:14 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/account-consents/67
+2025-11-17 18:28:15 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/payment-consents/request
+2025-11-17 18:28:15 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/payment-consents/9
+2025-11-17 18:28:16 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/payment-consents/53
+2025-11-17 18:28:17 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/payments
+2025-11-17 18:28:18 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/payments/77
+2025-11-17 18:28:18 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/products
+2025-11-17 18:28:19 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/products/34
+2025-11-17 18:28:20 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/product-agreements
+2025-11-17 18:28:21 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/product-agreements
+2025-11-17 18:28:21 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/product-agreements/40
+2025-11-17 18:28:22 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/product-agreements/49
+2025-11-17 18:28:22 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/product-agreement-consents/request
+2025-11-17 18:28:23 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/product-agreement-consents/59
+2025-11-17 18:28:24 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/product-agreement-consents/24
+2025-11-17 18:28:25 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/.well-known/jwks.json
+2025-11-17 18:28:25 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/
+2025-11-17 18:28:26 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/health
+2025-11-17 18:31:24 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 10556 (C:\Users\user\IdeaProjects\a\api-security-analyzer\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\a\api-security-analyzer)
+2025-11-17 18:31:24 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-17 18:31:25 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-17 18:31:25 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-17 18:31:25 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-17 18:31:25 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-17 18:31:25 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-17 18:31:25 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 766 ms
+2025-11-17 18:31:25 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-17 18:44:42 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 20100 (C:\Users\user\IdeaProjects\a\api-security-analyzer\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\a\api-security-analyzer)
+2025-11-17 18:44:42 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-17 18:44:43 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-17 18:44:43 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-17 18:44:43 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-17 18:44:43 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-17 18:44:43 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-17 18:44:43 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 790 ms
+2025-11-17 18:44:43 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-17 18:44:43 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-17 18:44:43 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-17 18:44:43 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 1.66 seconds (process running for 2.0)
+2025-11-17 18:44:46 [http-nio-8080-exec-1] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-17 18:44:46 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-11-17 18:44:46 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
+2025-11-17 18:44:47 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Loading OpenAPI spec from https://vbank.open.bankingapi.ru/openapi.json
+2025-11-17 18:44:49 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Bank token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZWFtMTg2IiwiY2xpZW50X2lkIjoidGVhbTE4NiIsInR5cGUiOiJ0ZWFtIiwiaXNzIjoidmJhbmsiLCJhdWQiOiJvcGVuYmFua2luZyIsImV4cCI6MTc2MzQ4MDY4OX0.FZeKmncARVrnPhw3rxAhaWoifrA0nG-UhWL8mOFeOV8, Consent ID: consent-7c9e7393c09f
+2025-11-17 18:44:50 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts
+2025-11-17 18:44:50 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/auth/bank-token
+2025-11-17 18:44:51 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/accounts
+2025-11-17 18:44:52 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts/2
+2025-11-17 18:44:52 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts/11/balances
+2025-11-17 18:44:52 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts/75/transactions
+2025-11-17 18:44:53 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/accounts/53/status
+2025-11-17 18:44:54 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/accounts/77/close
+2025-11-17 18:44:55 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/cards
+2025-11-17 18:44:56 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/cards
+2025-11-17 18:44:57 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/cards/92
+2025-11-17 18:44:57 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/cards/2
+2025-11-17 18:44:58 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/cards/58/status
+2025-11-17 18:44:58 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/cards/98/limits
+2025-11-17 18:44:59 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/account-consents/request
+2025-11-17 18:44:59 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/account-consents/46
+2025-11-17 18:45:00 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/account-consents/1
+2025-11-17 18:45:00 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/payment-consents/request
+2025-11-17 18:45:01 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/payment-consents/97
+2025-11-17 18:45:01 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/payment-consents/2
+2025-11-17 18:45:02 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/payments
+2025-11-17 18:45:02 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/payments/27
+2025-11-17 18:45:03 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/products
+2025-11-17 18:45:03 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/products/27
+2025-11-17 18:45:04 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/product-agreements
+2025-11-17 18:45:04 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/product-agreements
+2025-11-17 18:45:05 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/product-agreements/50
+2025-11-17 18:45:05 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/product-agreements/91
+2025-11-17 18:45:06 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/product-agreement-consents/request
+2025-11-17 18:45:06 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/product-agreement-consents/13
+2025-11-17 18:45:07 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/product-agreement-consents/87
+2025-11-17 18:45:07 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/.well-known/jwks.json
+2025-11-17 18:45:08 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/
+2025-11-17 18:45:08 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/health
+2025-11-17 18:47:18 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 10560 (C:\Users\user\IdeaProjects\a\api-security-analyzer\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\a\api-security-analyzer)
+2025-11-17 18:47:18 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-17 18:47:18 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-17 18:47:18 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-17 18:47:18 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-17 18:47:18 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-17 18:47:18 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-17 18:47:18 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 791 ms
+2025-11-17 18:47:19 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-17 18:47:19 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-17 18:47:19 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-17 18:47:19 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 1.638 seconds (process running for 1.997)
+2025-11-17 18:47:21 [http-nio-8080-exec-5] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-17 18:47:21 [http-nio-8080-exec-5] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-11-17 18:47:21 [http-nio-8080-exec-5] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 0 ms
+2025-11-17 18:47:22 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Loading OpenAPI spec from https://vbank.open.bankingapi.ru/openapi.json
+2025-11-17 18:47:25 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Bank token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZWFtMTg2IiwiY2xpZW50X2lkIjoidGVhbTE4NiIsInR5cGUiOiJ0ZWFtIiwiaXNzIjoidmJhbmsiLCJhdWQiOiJvcGVuYmFua2luZyIsImV4cCI6MTc2MzQ4MDg0NH0.YVnYVQaUYJTGunGyGF3iLHjZ4N4sEgSbrr3V4OXtNCc, Consent ID: consent-0379e654ce25
+2025-11-17 18:47:26 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/auth/bank-token
+2025-11-17 18:47:26 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts
+2025-11-17 18:47:27 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/accounts
+2025-11-17 18:47:27 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts/82
+2025-11-17 18:47:29 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts/79/transactions
+2025-11-17 18:47:29 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts/3/balances
+2025-11-17 18:47:30 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/accounts/32/status
+2025-11-17 18:47:30 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/accounts/49/close
+2025-11-17 18:47:31 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/cards
+2025-11-17 18:47:31 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/cards
+2025-11-17 18:47:32 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/cards/87
+2025-11-17 18:47:32 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/cards/49
+2025-11-17 18:47:33 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/cards/58/limits
+2025-11-17 18:47:33 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/cards/87/status
+2025-11-17 18:47:34 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/account-consents/request
+2025-11-17 18:47:34 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/account-consents/36
+2025-11-17 18:47:35 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/account-consents/89
+2025-11-17 18:47:35 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/payment-consents/request
+2025-11-17 18:47:36 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/payment-consents/89
+2025-11-17 18:47:36 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/payment-consents/29
+2025-11-17 18:47:38 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/payments/97
+2025-11-17 18:47:38 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/payments
+2025-11-17 18:47:39 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/products/98
+2025-11-17 18:47:39 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/products
+2025-11-17 18:47:40 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/product-agreements
+2025-11-17 18:47:40 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/product-agreements
+2025-11-17 18:47:41 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/product-agreements/20
+2025-11-17 18:47:41 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/product-agreements/22
+2025-11-17 18:47:42 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/product-agreement-consents/request
+2025-11-17 18:47:42 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/product-agreement-consents/32
+2025-11-17 18:47:43 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/product-agreement-consents/34
+2025-11-17 18:47:43 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/.well-known/jwks.json
+2025-11-17 18:47:44 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/
+2025-11-17 18:47:44 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/health
+2025-11-17 19:03:35 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 16240 (C:\Users\user\IdeaProjects\a\api-security-analyzer\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\a\api-security-analyzer)
+2025-11-17 19:03:35 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-17 19:03:35 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-17 19:03:35 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-17 19:03:35 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-17 19:03:35 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-17 19:03:35 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-17 19:03:35 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 775 ms
+2025-11-17 19:03:36 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-17 19:03:36 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-17 19:03:36 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-17 19:03:36 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 1.632 seconds (process running for 1.974)
+2025-11-17 19:03:38 [http-nio-8080-exec-2] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-17 19:03:38 [http-nio-8080-exec-2] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-11-17 19:03:38 [http-nio-8080-exec-2] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
+2025-11-17 19:03:38 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Loading OpenAPI spec from https://vbank.open.bankingapi.ru/openapi.json
+2025-11-17 19:03:40 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Bank token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZWFtMTg2IiwiY2xpZW50X2lkIjoidGVhbTE4NiIsInR5cGUiOiJ0ZWFtIiwiaXNzIjoidmJhbmsiLCJhdWQiOiJvcGVuYmFua2luZyIsImV4cCI6MTc2MzQ4MTgyMX0.4Tv8Y62-Hv9VGP6A6j-nDR-bNGF-AMy9ipO25oVrg9g, Consent ID: consent-3d7e9cc56576
+2025-11-17 19:03:42 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts
+2025-11-17 19:03:42 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/auth/bank-token
+2025-11-17 19:03:43 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts/83
+2025-11-17 19:03:43 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/accounts
+2025-11-17 19:03:44 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts/83/balances
+2025-11-17 19:03:44 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts/42/transactions
+2025-11-17 19:03:45 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/accounts/72/status
+2025-11-17 19:03:45 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/accounts/2/close
+2025-11-17 19:03:46 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/cards
+2025-11-17 19:03:46 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/cards
+2025-11-17 19:03:47 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/cards/51
+2025-11-17 19:03:47 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/cards/46
+2025-11-17 19:03:48 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/cards/3/status
+2025-11-17 19:03:48 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/cards/63/limits
+2025-11-17 19:03:49 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/account-consents/request
+2025-11-17 19:03:49 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/account-consents/7
+2025-11-17 19:03:50 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/account-consents/6
+2025-11-17 19:03:51 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/payment-consents/request
+2025-11-17 19:03:51 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/payment-consents/3
+2025-11-17 19:03:52 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/payment-consents/90
+2025-11-17 19:03:52 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/payments
+2025-11-17 19:03:53 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/payments/70
+2025-11-17 19:03:54 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/products
+2025-11-17 19:03:54 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/products/62
+2025-11-17 19:03:55 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/product-agreements
+2025-11-17 19:03:55 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/product-agreements
+2025-11-17 19:03:56 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/product-agreements/65
+2025-11-17 19:03:56 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/product-agreements/80
+2025-11-17 19:03:57 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/product-agreement-consents/request
+2025-11-17 19:03:57 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/product-agreement-consents/90
+2025-11-17 19:03:58 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/product-agreement-consents/59
+2025-11-17 19:03:58 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/.well-known/jwks.json
+2025-11-17 19:03:59 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/
+2025-11-17 19:03:59 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/health
+2025-11-17 19:14:40 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 20344 (C:\Users\user\IdeaProjects\a\api-security-analyzer\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\a\api-security-analyzer)
+2025-11-17 19:14:40 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-17 19:14:41 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-17 19:14:41 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-17 19:14:41 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-17 19:14:41 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-17 19:14:41 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-17 19:14:41 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 774 ms
+2025-11-17 19:14:42 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-17 19:14:42 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-17 19:14:42 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-17 19:14:42 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 1.654 seconds (process running for 2.004)
+2025-11-17 19:14:47 [http-nio-8080-exec-1] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-17 19:14:47 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-11-17 19:14:47 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
+2025-11-17 19:14:47 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Loading OpenAPI spec from https://vbank.open.bankingapi.ru/openapi.json
+2025-11-17 19:14:51 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Bank token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZWFtMTg2IiwiY2xpZW50X2lkIjoidGVhbTE4NiIsInR5cGUiOiJ0ZWFtIiwiaXNzIjoidmJhbmsiLCJhdWQiOiJvcGVuYmFua2luZyIsImV4cCI6MTc2MzQ4MjQ5MX0.iwnHOcFLstVgmM4PK8V-ZgGvf79ntaOuT7AP_wHRCCE, Consent ID: consent-e60177a58e5d
+2025-11-17 19:14:51 [http-nio-8080-exec-1] WARN  c.e.a.service.ApiScanService - Failed to fetch accounts: HTTP 403
+2025-11-17 19:14:51 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Retrieved accountIds: []
+2025-11-17 19:14:52 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/auth/bank-token
+2025-11-17 19:14:52 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts
+2025-11-17 19:14:53 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts/98
+2025-11-17 19:14:54 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/accounts
+2025-11-17 19:14:55 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts/13/balances
+2025-11-17 19:14:55 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts/55/transactions
+2025-11-17 19:14:56 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/accounts/79/status
+2025-11-17 19:14:56 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/accounts/57/close
+2025-11-17 19:14:57 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/cards
+2025-11-17 19:14:57 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/cards
+2025-11-17 19:14:58 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/cards/55
+2025-11-17 19:14:59 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/cards/31
+2025-11-17 19:14:59 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/cards/23/status
+2025-11-17 19:15:00 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/cards/80/limits
+2025-11-17 19:15:00 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/account-consents/request
+2025-11-17 19:15:01 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/account-consents/8
+2025-11-17 19:15:01 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/account-consents/15
+2025-11-17 19:15:02 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/payment-consents/request
+2025-11-17 19:15:02 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/payment-consents/60
+2025-11-17 19:15:04 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/payment-consents/88
+2025-11-17 19:15:04 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/payments
+2025-11-17 19:15:05 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/payments/60
+2025-11-17 19:15:06 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/products
+2025-11-17 19:15:06 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/products/66
+2025-11-17 19:15:07 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/product-agreements
+2025-11-17 19:15:07 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/product-agreements
+2025-11-17 19:15:08 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/product-agreements/64
+2025-11-17 19:15:08 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/product-agreements/86
+2025-11-17 19:15:09 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/product-agreement-consents/19
+2025-11-17 19:15:09 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/product-agreement-consents/request
+2025-11-17 19:15:10 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/product-agreement-consents/78
+2025-11-17 19:15:10 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/.well-known/jwks.json
+2025-11-17 19:15:11 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/
+2025-11-17 19:15:11 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/health
+2025-11-17 19:21:13 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 21732 (C:\Users\user\IdeaProjects\a\api-security-analyzer\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\a\api-security-analyzer)
+2025-11-17 19:21:13 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-17 19:21:14 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-17 19:21:14 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-17 19:21:14 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-17 19:21:14 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-17 19:21:14 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-17 19:21:14 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 768 ms
+2025-11-17 19:21:14 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-17 19:21:14 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-17 19:21:14 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-17 19:21:14 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 1.645 seconds (process running for 2.006)
+2025-11-17 19:21:16 [http-nio-8080-exec-1] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-17 19:21:16 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-11-17 19:21:16 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 0 ms
+2025-11-17 19:21:16 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Loading OpenAPI spec from https://vbank.open.bankingapi.ru/openapi.json
+2025-11-17 19:21:18 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Bank token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZWFtMTg2IiwiY2xpZW50X2lkIjoidGVhbTE4NiIsInR5cGUiOiJ0ZWFtIiwiaXNzIjoidmJhbmsiLCJhdWQiOiJvcGVuYmFua2luZyIsImV4cCI6MTc2MzQ4Mjg3OX0.vI8xqecpsqHO3CdLe9NSyH7s_KWsZtcngy8QuGWZVcw, Consent ID: consent-82da25331792
+2025-11-17 19:21:18 [http-nio-8080-exec-1] WARN  c.e.a.service.ApiScanService - Failed to fetch accounts: HTTP 403
+2025-11-17 19:21:18 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Retrieved accountIds: []
+2025-11-17 19:21:20 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts
+2025-11-17 19:21:20 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/auth/bank-token
+2025-11-17 19:21:21 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/accounts
+2025-11-17 19:21:22 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts/80
+2025-11-17 19:21:22 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts/81/balances
+2025-11-17 19:21:23 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts/66/transactions
+2025-11-17 19:21:24 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/accounts/91/status
+2025-11-17 19:21:25 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/accounts/22/close
+2025-11-17 19:21:25 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/cards
+2025-11-17 19:21:26 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/cards
+2025-11-17 19:21:26 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/cards/26
+2025-11-17 19:21:27 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/cards/2
+2025-11-17 19:21:27 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/cards/22/status
+2025-11-17 19:21:28 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/cards/7/limits
+2025-11-17 19:21:29 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/account-consents/request
+2025-11-17 19:21:29 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/account-consents/76
+2025-11-17 19:21:30 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/account-consents/41
+2025-11-17 19:21:30 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/payment-consents/request
+2025-11-17 19:21:31 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/payment-consents/79
+2025-11-17 19:21:31 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/payment-consents/60
+2025-11-17 19:21:32 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/payments
+2025-11-17 19:21:32 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/payments/72
+2025-11-17 19:21:33 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/products
+2025-11-17 19:21:33 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/products/15
+2025-11-17 19:21:34 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/product-agreements
+2025-11-17 19:21:34 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/product-agreements
+2025-11-17 19:21:35 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/product-agreements/70
+2025-11-17 19:21:35 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/product-agreements/39
+2025-11-17 19:21:36 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/product-agreement-consents/request
+2025-11-17 19:21:36 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/product-agreement-consents/84
+2025-11-17 19:21:37 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/product-agreement-consents/33
+2025-11-17 19:21:37 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/.well-known/jwks.json
+2025-11-17 19:21:38 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/
+2025-11-17 19:21:38 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/health

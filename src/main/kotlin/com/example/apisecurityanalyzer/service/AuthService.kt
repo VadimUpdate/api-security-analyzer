@@ -121,18 +121,15 @@ class AuthService(
         bankBaseUrl: String,
         clientId: String,
         clientSecret: String,
-        permissions: List<String>,
-        expiresInHours: Long = 24,
         issues: MutableList<Issue>
     ): String {
         val token = getBankToken(bankBaseUrl, clientId, clientSecret, issues)
         val consentUrl = "$bankBaseUrl/account-consents/request"
-        val expiration = OffsetDateTime.now().plusHours(expiresInHours).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+        val expiration = OffsetDateTime.now().plusHours(24).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 
-        // Исправлено: добавляем "-1" к client_id
         val requestBody = mapOf(
             "client_id" to "$clientId-1",
-            "permissions" to permissions,
+            "permissions" to listOf("ReadAccountsBasic","ReadAccountsDetail","ReadBalances"),
             "expirationDateTime" to expiration
         )
 
@@ -144,13 +141,23 @@ class AuthService(
         }
 
         if (!resp.status.isSuccess()) {
-            issues.add(Issue("CONSENT_HTTP_ERROR", Severity.HIGH, "Ошибка HTTP ${resp.status}", consentUrl, "POST", resp.bodyAsText()))
+            issues.add(
+                Issue(
+                    "CONSENT_HTTP_ERROR",
+                    Severity.HIGH,
+                    "Ошибка HTTP ${resp.status}",
+                    consentUrl,
+                    "POST",
+                    resp.bodyAsText()
+                )
+            )
             throw IllegalStateException("Не удалось создать consent")
         }
 
-        return mapper.readTree(resp.bodyAsText()).path("consent_id").asText(null)
+        return mapper.readTree(resp.bodyAsText()).path("consent_id").asText()
             ?: throw IllegalStateException("consent_id не найден в ответе")
     }
+
 
     private fun addIssue(list: MutableList<Issue>, issue: Issue) {
         if (list.none { it.type == issue.type && it.path == issue.path && it.method == issue.method }) {

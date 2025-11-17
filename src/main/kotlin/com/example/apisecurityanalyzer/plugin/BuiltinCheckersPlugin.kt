@@ -23,19 +23,21 @@ class BuiltinCheckersPlugin(
 
     override val name: String = "BuiltinCheckers"
 
-    private var bankToken: String = ""
-    private var consentId: String = ""
+    var consentId: String? = null
+    var bankToken: String? = null
 
-    private val fuzzer = FuzzerService(
-        authService = authService,
-        bankBaseUrl = bankBaseUrl,
-        clientId = clientId,
-        clientSecret = clientSecret,
-        enabled = enableFuzzing,
-        politenessDelayMs = politenessDelayMs,
-        maxConcurrency = maxConcurrency,
-        maxPayloadsPerEndpoint = maxPayloadsPerEndpoint
-    )
+    val fuzzer: FuzzerService by lazy {
+        FuzzerService(
+            authService = authService,
+            bankBaseUrl = bankBaseUrl,
+            clientId = clientId,
+            clientSecret = clientSecret,
+            enabled = enableFuzzing,
+            politenessDelayMs = politenessDelayMs,
+            maxConcurrency = maxConcurrency,
+            maxPayloadsPerEndpoint = maxPayloadsPerEndpoint
+        )
+    }
 
     private fun methodFromString(m: String): HttpMethod = when (m.uppercase()) {
         "GET" -> HttpMethod.Get
@@ -54,18 +56,26 @@ class BuiltinCheckersPlugin(
         return sensitive.any { body.contains(it, ignoreCase = true) }
     }
 
-    private suspend fun ensureTokenAndConsent(issues: MutableList<Issue>) {
-        if (bankToken.isBlank()) {
-            bankToken = authService.getBankToken(bankBaseUrl, clientId, clientSecret, issues)
+    /**
+     * Создать consent только один раз, если ещё не создан.
+     */
+    private suspend fun ensureConsent(issues: MutableList<Issue>) {
+        if (consentId == null) {
+            bankToken = authService.getBankToken(
+                bankBaseUrl = bankBaseUrl,
+                clientId = clientId,
+                clientSecret = clientSecret,
+                issues = issues
+            )
+
+            // Новый вызов БЕЗ параметра permissions (его больше нет в сигнатуре!)
+            consentId = authService.createConsent(
+                bankBaseUrl = bankBaseUrl,
+                clientId = clientId,
+                clientSecret = clientSecret,
+                issues = issues
+            )
         }
-        // Создаём новый consent перед каждой проверкой
-        consentId = authService.createConsent(
-            bankBaseUrl = bankBaseUrl,
-            clientId = clientId,
-            clientSecret = clientSecret,
-            permissions = listOf("ReadAccountsBasic","ReadBalances","ReadTransactionsDetail"),
-            issues = issues
-        )
     }
 
     override suspend fun runCheck(
@@ -75,8 +85,7 @@ class BuiltinCheckersPlugin(
         issues: MutableList<Issue>
     ) {
         try {
-            // Обновляем токен и consent
-            ensureTokenAndConsent(issues)
+            ensureConsent(issues)
 
             val resp: HttpResponse = authService.performRequestWithAuth(
                 method = methodFromString(method),
@@ -84,8 +93,8 @@ class BuiltinCheckersPlugin(
                 bankBaseUrl = bankBaseUrl,
                 clientId = clientId,
                 clientSecret = clientSecret,
-                consentId = consentId,
-                bodyBlock = { /* тело запроса при GET/HEAD обычно пустое */ },
+                consentId = consentId!!,
+                bodyBlock = { },
                 issues = issues
             )
 
@@ -116,7 +125,8 @@ class BuiltinCheckersPlugin(
             }
 
             if (enableFuzzing) {
-                fuzzer.consentId = consentId
+                fuzzer.bankToken = bankToken ?: ""
+                fuzzer.consentId = consentId ?: ""
                 fuzzer.fuzzEndpoint(
                     url = url,
                     method = methodFromString(method),

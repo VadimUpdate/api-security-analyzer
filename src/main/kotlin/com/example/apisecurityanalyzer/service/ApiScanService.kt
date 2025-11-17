@@ -56,12 +56,7 @@ class ApiScanService(
 
         // Получаем bankToken один раз
         val bankToken = try {
-            authService.fetchBankToken(
-                bankBaseUrl = userInput.targetUrl,
-                clientId = userInput.clientId,
-                clientSecret = userInput.clientSecret,
-                issues = issues
-            )
+            authService.getBankToken(userInput.targetUrl, userInput.clientId, userInput.clientSecret, issues)
         } catch (e: Exception) {
             issues.add(Issue("AUTH_TOKEN_FAIL", Severity.HIGH, "Не удалось получить bank token: ${e.message}"))
             null
@@ -74,11 +69,11 @@ class ApiScanService(
                     bankBaseUrl = userInput.targetUrl,
                     clientId = userInput.clientId,
                     clientSecret = userInput.clientSecret,
-                    permissions = listOf("ReadAccountsBasic","ReadBalances","ReadTransactionsDetail"),
                     issues = issues
                 )
             } catch (_: Exception) { null }
         } else null
+
 
         if (consentId.isNullOrBlank()) {
             issues.add(Issue("CONSENT_FAIL", Severity.HIGH, "Consent не получен или не одобрен"))
@@ -95,7 +90,17 @@ class ApiScanService(
             enableFuzzing = userInput.enableFuzzing
         )
 
+        // Устанавливаем token и consent в фаззер заранее
+        plugin.fuzzer.bankToken = bankToken ?: ""
+        plugin.fuzzer.consentId = consentId ?: ""
+
         val pluginRegistry = PluginRegistry().apply { register(plugin) }
+
+        // Получаем список accountId из /accounts
+        val accountIds = if (!bankToken.isNullOrBlank() && !consentId.isNullOrBlank()) {
+            getAccounts(userInput.targetUrl, bankToken, consentId, userInput.clientId)
+        } else emptyList()
+        log.info("Retrieved accountIds: $accountIds")
 
         val semaphore = Semaphore(userInput.maxConcurrency)
         coroutineScope {
@@ -150,7 +155,8 @@ class ApiScanService(
                 issuesByType = issues.groupingBy { it.type }.eachCount(),
                 uniqueEndpoints = pathsMap.size
             ),
-            issues = issues
+            issues = issues,
+            accountIds = accountIds
         )
     }
 
@@ -161,7 +167,8 @@ class ApiScanService(
             timestamp = Instant.now(),
             totalEndpoints = 0,
             summary = Summary(0, emptyMap(), 0),
-            issues = issues
+            issues = issues,
+            accountIds = emptyList()
         )
 
     private suspend fun performEnhancedChecks(
@@ -230,5 +237,31 @@ class ApiScanService(
         }
 
         traverse(json)
+    }
+
+    private suspend fun getAccounts(bankBaseUrl: String, bankToken: String, consentId: String, requestingBank: String): List<String> {
+        val url = "$bankBaseUrl/accounts?client_id=$requestingBank"
+        return try {
+            val response = client.request(url) {
+                method = HttpMethod.Get
+                header("Authorization", "Bearer $bankToken")
+                header("X-Consent-Id", consentId)
+                header("X-Requesting-Bank", requestingBank)
+                header("Accept", "application/json")
+            }
+
+            if (response.status.value != 200) {
+                log.warn("Failed to fetch accounts: HTTP ${response.status.value}")
+                return emptyList()
+            }
+
+            val body = response.bodyAsText()
+            val json = mapper.readTree(body)
+            val accountsNode = json.get("accounts") ?: return emptyList()
+            accountsNode.mapNotNull { it.get("accountId")?.asText() }
+        } catch (e: Exception) {
+            classifyNetworkError(e, url, "GET", mutableListOf())
+            emptyList()
+        }
     }
 }

@@ -11,6 +11,7 @@ data class ScanReport(
     val totalEndpoints: Int,
     val summary: Summary,
     val issues: List<Issue>,
+    val accountIds: List<String> = emptyList(),
     val issuesByType: Map<String, Int> = emptyMap(),
     val uniqueEndpoints: Int = 0
 )
