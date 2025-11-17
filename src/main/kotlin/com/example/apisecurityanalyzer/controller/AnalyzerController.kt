@@ -4,6 +4,7 @@ import com.example.apianalyzer.model.ScanReport
 import com.example.apianalyzer.service.ApiScanService
 import com.example.apianalyzer.service.UserInput
 import org.springframework.web.bind.annotation.*
+import kotlinx.coroutines.runBlocking
 
 @RestController
 @RequestMapping("/api")
@@ -21,8 +22,7 @@ class AnalyzerController(private val apiScanService: ApiScanService) {
     )
 
     @PostMapping("/analyze")
-    fun analyze(@RequestBody request: ScanRequest): ScanReport {
-
+    fun analyze(@RequestBody request: ScanRequest): ScanReport = runBlocking {
         val userInput = UserInput(
             specUrl = request.specUrl,
             targetUrl = request.targetUrl,
@@ -34,6 +34,6 @@ class AnalyzerController(private val apiScanService: ApiScanService) {
             enableFuzzing = request.enableFuzzing
         )
 
-        return apiScanService.runScan(userInput)
+        apiScanService.runScan(userInput)
     }
 }

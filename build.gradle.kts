@@ -29,8 +29,10 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.19.2")
 
-    // Swagger / OpenAPI
-    implementation("io.swagger.parser.v3:swagger-parser:2.1.16")
+    // Swagger / OpenAPI (совместимые версии)
+    implementation("io.swagger.parser.v3:swagger-parser:2.1.18")
+    implementation("io.swagger.core.v3:swagger-core:2.2.15")
+    implementation("io.swagger.core.v3:swagger-models:2.2.15")
 
     // HTTP клиент Ktor
     implementation("io.ktor:ktor-client-core:2.3.5")

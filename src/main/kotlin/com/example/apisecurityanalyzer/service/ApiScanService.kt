@@ -3,11 +3,13 @@ package com.example.apianalyzer.service
 import com.example.apianalyzer.model.*
 import com.example.apianalyzer.plugin.BuiltinCheckersPlugin
 import com.example.apianalyzer.plugin.PluginRegistry
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import io.ktor.client.plugins.*
+import io.ktor.client.network.sockets.*
 import io.ktor.http.*
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.parser.OpenAPIV3Parser
@@ -28,12 +30,11 @@ class ApiScanService(
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
     private val mapper = jacksonObjectMapper()
-    private val client: HttpClient get() = clientProvider.client
+    private val client get() = clientProvider.client
 
     fun runScan(userInput: UserInput): ScanReport = runBlocking {
         val issues = mutableListOf<Issue>()
 
-        // Load OpenAPI spec
         val specText = try {
             log.info("Loading OpenAPI spec from ${userInput.specUrl}")
             client.get(userInput.specUrl).bodyAsText()
@@ -53,10 +54,10 @@ class ApiScanService(
         val pathsMap = openApi.paths ?: emptyMap()
         val totalEndpoints = pathsMap.entries.sumOf { (_, pi) -> extractOperations(pi).size }
 
-        // Get bank token
-        val bankToken = try {
+        // Получаем bankToken через AuthService
+        val token = try {
             authService.fetchBankToken(
-                bankBaseUrl = userInput.targetUrl.trimEnd('/'),
+                bankBaseUrl = userInput.targetUrl,
                 clientId = userInput.clientId,
                 clientSecret = userInput.clientSecret,
                 issues = issues
@@ -66,39 +67,44 @@ class ApiScanService(
             null
         }
 
-        // Create consent
-        val consentId = if (!bankToken.isNullOrBlank()) {
-            try {
-                authService.createConsent(userInput.clientId)
-            } catch (e: Exception) {
-                issues.add(Issue("CONSENT_REQUEST_FAIL", Severity.HIGH, "Ошибка при создании consent: ${e.message}"))
-                null
-            }
+        // Получаем consentId
+        val consentIdValue = if (!token.isNullOrBlank()) {
+            authService.createConsent(
+                bankBaseUrl = userInput.targetUrl,
+                clientId = userInput.clientId,
+                clientSecret = userInput.clientSecret, // обязательно передаем
+                permissions = listOf(
+                    "ReadAccountsBasic",
+                    "ReadBalances",
+                    "ReadTransactionsDetail"
+                ),
+                issues = issues
+            )
         } else null
 
-        if (consentId.isNullOrBlank()) {
+
+        if (consentIdValue.isNullOrBlank()) {
             issues.add(Issue("CONSENT_FAIL", Severity.HIGH, "Consent не получен или не одобрен"))
         }
 
-        log.info("Bank token: $bankToken, Consent ID: $consentId")
+        log.info("Bank token: $token, Consent ID: $consentIdValue")
 
-        // Plugin system
-        val pluginRegistry = PluginRegistry().apply {
-            register(
-                BuiltinCheckersPlugin(
-                    clientProvider = clientProvider,
-                    authService = authService,
-                    bankBaseUrl = userInput.targetUrl.trimEnd('/'),
-                    clientId = userInput.clientId,
-                    clientSecret = userInput.clientSecret,
-                    enableFuzzing = userInput.enableFuzzing,
-                    politenessDelayMs = userInput.politenessDelayMs.toLong(),
-                    maxConcurrency = userInput.maxConcurrency
-                )
-            )
+        val plugin = BuiltinCheckersPlugin(
+            clientProvider = clientProvider,
+            authService = authService,
+            bankBaseUrl = userInput.targetUrl,
+            clientId = userInput.clientId,
+            clientSecret = userInput.clientSecret,
+            enableFuzzing = userInput.enableFuzzing
+        ).apply {
+            this.bankToken = token ?: ""
+            this.consentId = consentIdValue ?: ""
         }
 
-        // Parallel scanning
+        val pluginRegistry = PluginRegistry().apply {
+            register(plugin)
+        }
+
         val semaphore = Semaphore(userInput.maxConcurrency)
         coroutineScope {
             val jobs = mutableListOf<Deferred<Unit>>()
@@ -108,19 +114,25 @@ class ApiScanService(
                     if (operation == null) continue
                     val combinedParams = (pathItem.parameters ?: emptyList()) + (operation.parameters ?: emptyList())
                     val testUrl = buildUrlFromPath(userInput.targetUrl, pathTemplate, combinedParams)
+
                     jobs += async {
                         semaphore.withPermit {
                             delay(userInput.politenessDelayMs.toLong())
                             try {
-                                pluginRegistry.runAll(testUrl, method, operation, issues, userInput.enableFuzzing)
+                                pluginRegistry.runAll(
+                                    url = testUrl,
+                                    method = method,
+                                    operation = operation,
+                                    issues = issues
+                                )
 
-                                if (!bankToken.isNullOrBlank() && !consentId.isNullOrBlank()) {
+                                if (!token.isNullOrBlank() && !consentIdValue.isNullOrBlank()) {
                                     performEnhancedChecks(
                                         url = testUrl,
                                         method = method,
                                         issues = issues,
-                                        bankToken = bankToken,
-                                        consentId = consentId,
+                                        bankToken = token,
+                                        consentId = consentIdValue,
                                         userInput = userInput
                                     )
                                 }
@@ -168,22 +180,23 @@ class ApiScanService(
         consentId: String,
         userInput: UserInput
     ) {
+        log.info("Performing enhanced check: $method $url")
+
         val response = try {
-            authService.performRequestWithAuth(
-                method = HttpMethod.parse(method),
-                url = url,
-                bankBaseUrl = userInput.targetUrl.trimEnd('/'),
-                clientId = userInput.clientId,
-                clientSecret = userInput.clientSecret,
-                consentId = consentId,
-                bankToken = bankToken,
-                bodyBlock = {
+            client.request(url) {
+                this.method = HttpMethod.parse(method)
+
+                if (!url.contains("/auth/bank-token")) {
                     header("Authorization", "Bearer $bankToken")
                     header("X-Consent-Id", consentId)
-                    header("X-Requesting-Bank", userInput.clientId)
-                },
-                issues = issues
-            )
+                    header("X-Requesting-Bank", userInput.requestingBank)
+                }
+
+                if (this.method != HttpMethod.Get) {
+                    contentType(ContentType.Application.Json)
+                    setBody("{}")
+                }
+            }
         } catch (e: Exception) {
             classifyNetworkError(e, url, method, issues)
             return
@@ -192,7 +205,10 @@ class ApiScanService(
         val status = response.status.value
         val body = response.bodyAsText()
 
-        if (status == 403) issues.add(Issue("ENDPOINT_FORBIDDEN", Severity.LOW, "$method $url → HTTP 403", url, method))
+        if (status == 403) {
+            issues.add(Issue("ENDPOINT_FORBIDDEN", Severity.LOW, "$method $url → 403", url, method))
+        }
+
         checkSensitiveFields(body, url, method, issues)
     }
 
@@ -202,21 +218,27 @@ class ApiScanService(
             is ConnectException, is SocketException -> issues.add(Issue("NETWORK_UNREACHABLE", Severity.MEDIUM, "Нет соединения: $url", url, method))
             else -> issues.add(Issue("NETWORK_ERROR", Severity.MEDIUM, "Ошибка сети: ${e.message}", url, method))
         }
+        log.error("Network error on $method $url", e)
     }
 
     private fun checkSensitiveFields(body: String?, url: String, method: String, issues: MutableList<Issue>) {
         if (body.isNullOrBlank()) return
         val json = try { mapper.readTree(body) } catch (_: Exception) { return }
-        val sensitive = listOf("password","token","secret","ssn","creditCard","dob")
-        fun traverse(node: com.fasterxml.jackson.databind.JsonNode) {
-            if (node.isObject) node.fields().forEach { (key, value) ->
-                if (sensitive.any { key.contains(it, ignoreCase = true) }) {
-                    issues.add(Issue("EXCESSIVE_DATA_EXPOSURE", Severity.HIGH, "Ответ содержит чувствительное поле: $key", url, method))
+
+        val sensitive = listOf("password", "token", "secret", "ssn", "creditCard", "dob")
+
+        fun traverse(node: JsonNode) {
+            if (node.isObject) {
+                node.fields().forEach { (key, value) ->
+                    if (sensitive.any { key.contains(it, ignoreCase = true) }) {
+                        issues.add(Issue("EXCESSIVE_DATA_EXPOSURE", Severity.HIGH, "Ответ содержит чувствительное поле: $key", url, method))
+                    }
+                    traverse(value)
                 }
-                traverse(value)
             }
             if (node.isArray) node.forEach { traverse(it) }
         }
+
         traverse(json)
     }
 }

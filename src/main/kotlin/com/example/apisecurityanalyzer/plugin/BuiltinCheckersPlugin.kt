@@ -5,7 +5,6 @@ import com.example.apianalyzer.model.Severity
 import com.example.apianalyzer.service.AuthService
 import com.example.apianalyzer.service.ClientProvider
 import com.example.apianalyzer.service.FuzzerService
-import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.swagger.v3.oas.models.Operation
@@ -20,9 +19,12 @@ class BuiltinCheckersPlugin(
     private val politenessDelayMs: Long = 150L,
     private val maxConcurrency: Int = 4,
     private val maxPayloadsPerEndpoint: Int = 10
-) : CheckerPlugin { // наследуем интерфейс
+) : CheckerPlugin {
 
-    override val name: String = "BuiltinCheckers" // <-- обязательное override
+    override val name: String = "BuiltinCheckers"
+
+    var bankToken: String = ""
+    var consentId: String = ""
 
     private val fuzzer = FuzzerService(
         authService = authService,
@@ -59,15 +61,18 @@ class BuiltinCheckersPlugin(
         issues: MutableList<Issue>
     ) {
         try {
+            // Проверяем, что токен и consent установлены
+            if (bankToken.isBlank()) throw IllegalStateException("bankToken не установлен в BuiltinCheckersPlugin")
+            if (consentId.isBlank()) throw IllegalStateException("consentId не установлен в BuiltinCheckersPlugin")
+
             val resp: HttpResponse = authService.performRequestWithAuth(
-                methodFromString(method),
-                url,
-                bankBaseUrl,
-                clientId,
-                clientSecret,
-                consentId = "",
-                bankToken = "",
-                bodyBlock = null,
+                method = methodFromString(method),
+                url = url,
+                bankBaseUrl = bankBaseUrl,
+                clientId = clientId,
+                clientSecret = clientSecret,
+                consentId = consentId,
+                bodyBlock = { /* нет тела */ },
                 issues = issues
             )
 
@@ -94,6 +99,15 @@ class BuiltinCheckersPlugin(
                         path = url,
                         method = method
                     )
+                )
+            }
+
+            if (enableFuzzing) {
+                fuzzer.consentId = consentId
+                fuzzer.fuzzEndpoint(
+                    url = url,
+                    method = methodFromString(method),
+                    issues = issues
                 )
             }
 

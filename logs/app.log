@@ -9278,3 +9278,505 @@ If you expect serialized body, please check that you have installed the correspo
 2025-11-16 09:06:48 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
 2025-11-16 09:06:48 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Loading OpenAPI spec from https://vbank.open.bankingapi.ru/openapi.json
 2025-11-16 09:06:49 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Bank token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZWFtMTg2IiwiY2xpZW50X2lkIjoidGVhbTE4NiIsInR5cGUiOiJ0ZWFtIiwiaXNzIjoidmJhbmsiLCJhdWQiOiJvcGVuYmFua2luZyIsImV4cCI6MTc2MzM1OTYwOX0.v_sfN611fEB24Uog4INtC3QLTbCXYxvzrPu5pk8mzUs, Consent ID: team186-consent-id
+2025-11-16 09:08:51 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 5548 (C:\Users\user\IdeaProjects\a\api-security-analyzer-main\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\a\api-security-analyzer-main)
+2025-11-16 09:08:51 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-16 09:08:52 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-16 09:08:52 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-16 09:08:52 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-16 09:08:52 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-16 09:08:52 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-16 09:08:52 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 749 ms
+2025-11-16 09:08:52 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-16 09:08:52 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-16 09:08:52 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-16 09:08:52 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 1.592 seconds (process running for 1.919)
+2025-11-16 09:13:37 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 2596 (C:\Users\user\IdeaProjects\a\api-security-analyzer-main\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\a\api-security-analyzer-main)
+2025-11-16 09:13:37 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-16 09:13:38 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-16 09:13:38 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-16 09:13:38 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-16 09:13:38 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-16 09:13:38 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-16 09:13:38 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 824 ms
+2025-11-16 09:13:38 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-16 09:13:39 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-16 09:13:39 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-16 09:13:39 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 1.636 seconds (process running for 1.961)
+2025-11-16 09:13:42 [http-nio-8080-exec-1] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-16 09:13:42 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-11-16 09:13:42 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
+2025-11-16 09:13:42 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Loading OpenAPI spec from https://vbank.open.bankingapi.ru/openapi.json
+2025-11-16 09:13:43 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Bank token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZWFtMTg2IiwiY2xpZW50X2lkIjoidGVhbTE4NiIsInR5cGUiOiJ0ZWFtIiwiaXNzIjoidmJhbmsiLCJhdWQiOiJvcGVuYmFua2luZyIsImV4cCI6MTc2MzM2MDAyMn0.V4OEDDrNKVHaW0NDcy0HNCy_o3zT6fizVBhW6J5DChM, Consent ID: team186-consent-id
+2025-11-16 09:15:26 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 13100 (C:\Users\user\IdeaProjects\a\api-security-analyzer-main\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\a\api-security-analyzer-main)
+2025-11-16 09:15:26 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-16 09:15:27 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-16 09:15:27 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-16 09:15:27 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-16 09:15:27 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-16 09:15:27 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-16 09:15:27 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 800 ms
+2025-11-16 09:15:27 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-16 09:15:27 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-16 09:15:27 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-16 09:15:27 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 1.629 seconds (process running for 1.949)
+2025-11-16 09:15:29 [http-nio-8080-exec-4] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-16 09:15:29 [http-nio-8080-exec-4] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-11-16 09:15:29 [http-nio-8080-exec-4] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
+2025-11-16 09:15:29 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Loading OpenAPI spec from https://vbank.open.bankingapi.ru/openapi.json
+2025-11-16 09:15:30 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Bank token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZWFtMTg2IiwiY2xpZW50X2lkIjoidGVhbTE4NiIsInR5cGUiOiJ0ZWFtIiwiaXNzIjoidmJhbmsiLCJhdWQiOiJvcGVuYmFua2luZyIsImV4cCI6MTc2MzM2MDEzMH0.EcWTpfjYefbUVjalZhSgHBYLrSCovfBSs_G7pd7N-vE, Consent ID: team186-consent-id
+2025-11-16 09:20:52 [http-nio-8080-exec-5] WARN  o.s.w.s.m.s.DefaultHandlerExceptionResolver - Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Instantiation of [simple type, class com.example.apianalyzer.controller.AnalyzerController$ScanRequest] value failed for JSON property specUrl due to missing (therefore NULL) value for creator parameter specUrl which is a non-nullable type]
+2025-11-17 13:44:14 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 2164 (C:\Users\user\IdeaProjects\a\api-security-analyzer-main\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\a\api-security-analyzer-main)
+2025-11-17 13:44:14 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-17 13:44:15 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-17 13:44:15 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-17 13:44:15 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-17 13:44:15 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-17 13:44:15 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-17 13:44:15 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 843 ms
+2025-11-17 13:44:16 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-17 13:44:16 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-17 13:44:16 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-17 13:44:16 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 1.858 seconds (process running for 2.262)
+2025-11-17 13:44:45 [http-nio-8080-exec-5] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-17 13:44:45 [http-nio-8080-exec-5] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-11-17 13:44:45 [http-nio-8080-exec-5] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
+2025-11-17 13:44:45 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Loading OpenAPI spec from https://vbank.open.bankingapi.ru/openapi.json
+2025-11-17 13:44:46 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Bank token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZWFtMTg2IiwiY2xpZW50X2lkIjoidGVhbTE4NiIsInR5cGUiOiJ0ZWFtIiwiaXNzIjoidmJhbmsiLCJhdWQiOiJvcGVuYmFua2luZyIsImV4cCI6MTc2MzQ2MjY4N30.nwXW84OeYkGyTrM5niHhAoKUgmNNCToYi6q641xqVrw, Consent ID: team186-consent-id
+2025-11-17 13:44:47 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts
+2025-11-17 13:44:47 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/auth/bank-token
+2025-11-17 13:44:48 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/accounts
+2025-11-17 13:44:48 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts/15
+2025-11-17 13:44:48 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts/81/balances
+2025-11-17 13:44:48 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts/19/transactions
+2025-11-17 13:44:49 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/accounts/54/status
+2025-11-17 13:44:49 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/accounts/33/close
+2025-11-17 13:44:49 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/cards
+2025-11-17 13:44:50 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/cards
+2025-11-17 13:44:50 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/cards/91
+2025-11-17 13:44:50 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/cards/24
+2025-11-17 13:44:51 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/cards/37/status
+2025-11-17 13:44:51 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/cards/33/limits
+2025-11-17 13:44:51 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/account-consents/request
+2025-11-17 13:44:51 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/account-consents/60
+2025-11-17 13:44:52 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/account-consents/30
+2025-11-17 13:44:52 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/payment-consents/request
+2025-11-17 13:44:52 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/payment-consents/76
+2025-11-17 13:44:53 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/payment-consents/50
+2025-11-17 13:44:53 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/payments
+2025-11-17 13:44:53 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/payments/65
+2025-11-17 13:44:53 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/products
+2025-11-17 13:44:54 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/products/73
+2025-11-17 13:44:54 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/product-agreements
+2025-11-17 13:44:54 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/product-agreements
+2025-11-17 13:44:55 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/product-agreements/71
+2025-11-17 13:44:55 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/product-agreements/93
+2025-11-17 13:44:55 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/product-agreement-consents/request
+2025-11-17 13:44:56 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/product-agreement-consents/86
+2025-11-17 13:44:56 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/product-agreement-consents/76
+2025-11-17 13:44:56 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/.well-known/jwks.json
+2025-11-17 13:44:56 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/
+2025-11-17 13:44:57 [http-nio-8080-exec-5] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/health
+2025-11-17 13:52:44 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 19196 (C:\Users\user\IdeaProjects\a\api-security-analyzer-main\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\a\api-security-analyzer-main)
+2025-11-17 13:52:44 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-17 13:52:44 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-17 13:52:44 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-17 13:52:44 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-17 13:52:44 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-17 13:52:44 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-17 13:52:44 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 898 ms
+2025-11-17 13:52:45 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-17 13:52:45 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-17 13:52:45 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-17 13:52:45 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 1.766 seconds (process running for 2.123)
+2025-11-17 13:52:48 [http-nio-8080-exec-2] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-17 13:52:48 [http-nio-8080-exec-2] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-11-17 13:52:48 [http-nio-8080-exec-2] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
+2025-11-17 13:52:48 [http-nio-8080-exec-2] INFO  c.e.a.service.ApiScanService - Loading OpenAPI spec from https://vbank.open.bankingapi.ru/openapi.json
+2025-11-17 13:52:49 [http-nio-8080-exec-2] ERROR o.a.c.c.C.[.[.[.[dispatcherServlet] - Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed: java.lang.IllegalStateException: Не удалось получить bankToken] with root cause
+java.lang.IllegalStateException: Не удалось получить bankToken
+	at com.example.apianalyzer.service.AuthService.getBankToken(AuthService.kt:157)
+	at com.example.apianalyzer.service.AuthService$getBankToken$1.invokeSuspend(AuthService.kt)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:104)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:277)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+	at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:48)
+	at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source)
+	at com.example.apianalyzer.service.ApiScanService.runScan(ApiScanService.kt:36)
+	at com.example.apianalyzer.controller.AnalyzerController$analyze$1.invokeSuspend(AnalyzerController.kt:37)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:104)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:277)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+	at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:48)
+	at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source)
+	at com.example.apianalyzer.controller.AnalyzerController.analyze(AnalyzerController.kt:25)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at kotlin.reflect.jvm.internal.calls.CallerImpl$Method.callMethod(CallerImpl.kt:97)
+	at kotlin.reflect.jvm.internal.calls.CallerImpl$Method$Instance.call(CallerImpl.kt:113)
+	at kotlin.reflect.jvm.internal.KCallableImpl.callDefaultMethod$kotlin_reflection(KCallableImpl.kt:207)
+	at kotlin.reflect.jvm.internal.KCallableImpl.callBy(KCallableImpl.kt:112)
+	at org.springframework.web.method.support.InvocableHandlerMethod$KotlinDelegate.invokeFunction(InvocableHandlerMethod.java:335)
+	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:255)
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:191)
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:991)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:896)
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87)
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1089)
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:979)
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014)
+	at org.springframework.web.servlet.FrameworkServlet.doPost(FrameworkServlet.java:914)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:590)
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:193)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:138)
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:162)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:138)
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:162)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:138)
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:162)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:138)
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:162)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:138)
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:165)
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:88)
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:482)
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:113)
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:83)
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:72)
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:342)
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:399)
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903)
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1774)
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:973)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:491)
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:63)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+2025-11-17 13:53:08 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Loading OpenAPI spec from https://vbank.open.bankingapi.ru/openapi.json
+2025-11-17 13:53:09 [http-nio-8080-exec-4] ERROR o.a.c.c.C.[.[.[.[dispatcherServlet] - Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed: java.lang.IllegalStateException: Не удалось получить bankToken] with root cause
+java.lang.IllegalStateException: Не удалось получить bankToken
+	at com.example.apianalyzer.service.AuthService.getBankToken(AuthService.kt:157)
+	at com.example.apianalyzer.service.AuthService$getBankToken$1.invokeSuspend(AuthService.kt)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:104)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:277)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+	at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:48)
+	at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source)
+	at com.example.apianalyzer.service.ApiScanService.runScan(ApiScanService.kt:36)
+	at com.example.apianalyzer.controller.AnalyzerController$analyze$1.invokeSuspend(AnalyzerController.kt:37)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:104)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:277)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+	at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:48)
+	at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source)
+	at com.example.apianalyzer.controller.AnalyzerController.analyze(AnalyzerController.kt:25)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at kotlin.reflect.jvm.internal.calls.CallerImpl$Method.callMethod(CallerImpl.kt:97)
+	at kotlin.reflect.jvm.internal.calls.CallerImpl$Method$Instance.call(CallerImpl.kt:113)
+	at kotlin.reflect.jvm.internal.KCallableImpl.callDefaultMethod$kotlin_reflection(KCallableImpl.kt:207)
+	at kotlin.reflect.jvm.internal.KCallableImpl.callBy(KCallableImpl.kt:112)
+	at org.springframework.web.method.support.InvocableHandlerMethod$KotlinDelegate.invokeFunction(InvocableHandlerMethod.java:335)
+	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:255)
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:191)
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:991)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:896)
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87)
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1089)
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:979)
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014)
+	at org.springframework.web.servlet.FrameworkServlet.doPost(FrameworkServlet.java:914)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:590)
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:193)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:138)
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:162)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:138)
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:162)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:138)
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:162)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:138)
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:162)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:138)
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:165)
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:88)
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:482)
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:113)
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:83)
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:72)
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:342)
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:399)
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903)
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1774)
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:973)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:491)
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:63)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+2025-11-17 13:54:31 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 14680 (C:\Users\user\IdeaProjects\a\api-security-analyzer-main\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\a\api-security-analyzer-main)
+2025-11-17 13:54:31 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-17 13:54:32 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-17 13:54:32 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-17 13:54:32 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-17 13:54:32 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-17 13:54:32 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-17 13:54:32 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 783 ms
+2025-11-17 13:54:32 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-17 13:54:32 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-17 13:54:32 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-17 13:54:32 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 1.655 seconds (process running for 2.019)
+2025-11-17 13:54:34 [http-nio-8080-exec-1] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-17 13:54:34 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-11-17 13:54:34 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 0 ms
+2025-11-17 13:54:34 [http-nio-8080-exec-1] INFO  c.e.a.service.ApiScanService - Loading OpenAPI spec from https://vbank.open.bankingapi.ru/openapi.json
+2025-11-17 13:54:36 [http-nio-8080-exec-1] ERROR o.a.c.c.C.[.[.[.[dispatcherServlet] - Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed: java.lang.IllegalStateException: Не удалось получить bankToken] with root cause
+java.lang.IllegalStateException: Не удалось получить bankToken
+	at com.example.apianalyzer.service.AuthService.getBankToken(AuthService.kt:157)
+	at com.example.apianalyzer.service.AuthService$getBankToken$1.invokeSuspend(AuthService.kt)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:104)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:277)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+	at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:48)
+	at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source)
+	at com.example.apianalyzer.service.ApiScanService.runScan(ApiScanService.kt:36)
+	at com.example.apianalyzer.controller.AnalyzerController$analyze$1.invokeSuspend(AnalyzerController.kt:37)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:104)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:277)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+	at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:48)
+	at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source)
+	at com.example.apianalyzer.controller.AnalyzerController.analyze(AnalyzerController.kt:25)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at kotlin.reflect.jvm.internal.calls.CallerImpl$Method.callMethod(CallerImpl.kt:97)
+	at kotlin.reflect.jvm.internal.calls.CallerImpl$Method$Instance.call(CallerImpl.kt:113)
+	at kotlin.reflect.jvm.internal.KCallableImpl.callDefaultMethod$kotlin_reflection(KCallableImpl.kt:207)
+	at kotlin.reflect.jvm.internal.KCallableImpl.callBy(KCallableImpl.kt:112)
+	at org.springframework.web.method.support.InvocableHandlerMethod$KotlinDelegate.invokeFunction(InvocableHandlerMethod.java:335)
+	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:255)
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:191)
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:991)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:896)
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87)
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1089)
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:979)
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014)
+	at org.springframework.web.servlet.FrameworkServlet.doPost(FrameworkServlet.java:914)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:590)
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:193)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:138)
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:162)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:138)
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:162)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:138)
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:162)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:138)
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:162)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:138)
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:165)
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:88)
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:482)
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:113)
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:83)
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:72)
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:342)
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:399)
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903)
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1774)
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:973)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:491)
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:63)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+2025-11-17 13:56:48 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 21040 (C:\Users\user\IdeaProjects\a\api-security-analyzer-main\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\a\api-security-analyzer-main)
+2025-11-17 13:56:48 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-17 13:56:49 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-17 13:56:49 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-17 13:56:49 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-17 13:56:49 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-17 13:56:49 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-17 13:56:49 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 756 ms
+2025-11-17 13:56:50 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-17 13:56:50 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-17 13:56:50 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-17 13:56:50 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 1.604 seconds (process running for 1.956)
+2025-11-17 13:56:52 [http-nio-8080-exec-3] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-17 13:56:52 [http-nio-8080-exec-3] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-11-17 13:56:52 [http-nio-8080-exec-3] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
+2025-11-17 13:56:52 [http-nio-8080-exec-3] INFO  c.e.a.service.ApiScanService - Loading OpenAPI spec from https://vbank.open.bankingapi.ru/openapi.json
+2025-11-17 13:56:54 [http-nio-8080-exec-3] ERROR o.a.c.c.C.[.[.[.[dispatcherServlet] - Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed: java.lang.IllegalStateException: Не удалось получить bankToken] with root cause
+java.lang.IllegalStateException: Не удалось получить bankToken
+	at com.example.apianalyzer.service.AuthService.getBankToken(AuthService.kt:157)
+	at com.example.apianalyzer.service.AuthService$getBankToken$1.invokeSuspend(AuthService.kt)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:104)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:277)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+	at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:48)
+	at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source)
+	at com.example.apianalyzer.service.ApiScanService.runScan(ApiScanService.kt:35)
+	at com.example.apianalyzer.controller.AnalyzerController$analyze$1.invokeSuspend(AnalyzerController.kt:37)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:104)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:277)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+	at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:48)
+	at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source)
+	at com.example.apianalyzer.controller.AnalyzerController.analyze(AnalyzerController.kt:25)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at kotlin.reflect.jvm.internal.calls.CallerImpl$Method.callMethod(CallerImpl.kt:97)
+	at kotlin.reflect.jvm.internal.calls.CallerImpl$Method$Instance.call(CallerImpl.kt:113)
+	at kotlin.reflect.jvm.internal.KCallableImpl.callDefaultMethod$kotlin_reflection(KCallableImpl.kt:207)
+	at kotlin.reflect.jvm.internal.KCallableImpl.callBy(KCallableImpl.kt:112)
+	at org.springframework.web.method.support.InvocableHandlerMethod$KotlinDelegate.invokeFunction(InvocableHandlerMethod.java:335)
+	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:255)
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:191)
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:991)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:896)
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87)
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1089)
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:979)
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014)
+	at org.springframework.web.servlet.FrameworkServlet.doPost(FrameworkServlet.java:914)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:590)
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:193)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:138)
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:162)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:138)
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:162)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:138)
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:162)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:138)
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:162)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:138)
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:165)
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:88)
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:482)
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:113)
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:83)
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:72)
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:342)
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:399)
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903)
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1774)
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:973)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:491)
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:63)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+2025-11-17 13:58:29 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 788 (C:\Users\user\IdeaProjects\a\api-security-analyzer-main\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\a\api-security-analyzer-main)
+2025-11-17 13:58:29 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-17 13:58:30 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-17 13:58:30 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-17 13:58:30 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-17 13:58:30 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-17 13:58:30 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-17 13:58:30 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 793 ms
+2025-11-17 13:58:30 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-17 13:58:30 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-17 13:58:30 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-17 13:58:30 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 1.636 seconds (process running for 1.988)
+2025-11-17 13:58:32 [http-nio-8080-exec-4] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-17 13:58:32 [http-nio-8080-exec-4] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-11-17 13:58:32 [http-nio-8080-exec-4] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
+2025-11-17 13:58:32 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Loading OpenAPI spec from https://vbank.open.bankingapi.ru/openapi.json
+2025-11-17 13:58:34 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Bank token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZWFtMTg2IiwiY2xpZW50X2lkIjoidGVhbTE4NiIsInR5cGUiOiJ0ZWFtIiwiaXNzIjoidmJhbmsiLCJhdWQiOiJvcGVuYmFua2luZyIsImV4cCI6MTc2MzQ2MzUxNH0.uVvh_OdeITFQu6S-aqV3Q2hL8jQjT4ZDVq53v1uet9c, Consent ID: consent-0098cac73866
+2025-11-17 13:58:35 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/auth/bank-token
+2025-11-17 13:58:35 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts
+2025-11-17 13:58:35 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/accounts
+2025-11-17 13:58:35 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts/26
+2025-11-17 13:58:36 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts/50/balances
+2025-11-17 13:58:36 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/accounts/80/transactions
+2025-11-17 13:58:37 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/accounts/50/status
+2025-11-17 13:58:37 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/accounts/1/close
+2025-11-17 13:58:37 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/cards
+2025-11-17 13:58:37 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/cards
+2025-11-17 13:58:38 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/cards/36
+2025-11-17 13:58:38 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/cards/1
+2025-11-17 13:58:38 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/cards/42/status
+2025-11-17 13:58:38 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: PUT https://vbank.open.bankingapi.ru/cards/17/limits
+2025-11-17 13:58:39 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/account-consents/request
+2025-11-17 13:58:39 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/account-consents/59
+2025-11-17 13:58:39 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/account-consents/94
+2025-11-17 13:58:40 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/payment-consents/request
+2025-11-17 13:58:40 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/payment-consents/26
+2025-11-17 13:58:40 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/payment-consents/88
+2025-11-17 13:58:41 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/payments
+2025-11-17 13:58:41 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/payments/97
+2025-11-17 13:58:41 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/products
+2025-11-17 13:58:41 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/products/33
+2025-11-17 13:58:42 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/product-agreements
+2025-11-17 13:58:42 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/product-agreements
+2025-11-17 13:58:42 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/product-agreements/94
+2025-11-17 13:58:43 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/product-agreements/44
+2025-11-17 13:58:43 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: POST https://vbank.open.bankingapi.ru/product-agreement-consents/request
+2025-11-17 13:58:43 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/product-agreement-consents/94
+2025-11-17 13:58:43 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: DELETE https://vbank.open.bankingapi.ru/product-agreement-consents/50
+2025-11-17 13:58:44 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/.well-known/jwks.json
+2025-11-17 13:58:44 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/
+2025-11-17 13:58:44 [http-nio-8080-exec-4] INFO  c.e.a.service.ApiScanService - Performing enhanced check: GET https://vbank.open.bankingapi.ru/health
