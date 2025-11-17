@@ -54,8 +54,8 @@ class ApiScanService(
         val pathsMap = openApi.paths ?: emptyMap()
         val totalEndpoints = pathsMap.entries.sumOf { (_, pi) -> extractOperations(pi).size }
 
-        // Получаем bankToken через AuthService
-        val token = try {
+        // Получаем bankToken один раз
+        val bankToken = try {
             authService.fetchBankToken(
                 bankBaseUrl = userInput.targetUrl,
                 clientId = userInput.clientId,
@@ -67,27 +67,24 @@ class ApiScanService(
             null
         }
 
-        // Получаем consentId
-        val consentIdValue = if (!token.isNullOrBlank()) {
-            authService.createConsent(
-                bankBaseUrl = userInput.targetUrl,
-                clientId = userInput.clientId,
-                clientSecret = userInput.clientSecret, // обязательно передаем
-                permissions = listOf(
-                    "ReadAccountsBasic",
-                    "ReadBalances",
-                    "ReadTransactionsDetail"
-                ),
-                issues = issues
-            )
+        // Получаем consentId только если bankToken валиден
+        val consentId = if (!bankToken.isNullOrBlank()) {
+            try {
+                authService.createConsent(
+                    bankBaseUrl = userInput.targetUrl,
+                    clientId = userInput.clientId,
+                    clientSecret = userInput.clientSecret,
+                    permissions = listOf("ReadAccountsBasic","ReadBalances","ReadTransactionsDetail"),
+                    issues = issues
+                )
+            } catch (_: Exception) { null }
         } else null
 
-
-        if (consentIdValue.isNullOrBlank()) {
+        if (consentId.isNullOrBlank()) {
             issues.add(Issue("CONSENT_FAIL", Severity.HIGH, "Consent не получен или не одобрен"))
         }
 
-        log.info("Bank token: $token, Consent ID: $consentIdValue")
+        log.info("Bank token: $bankToken, Consent ID: $consentId")
 
         val plugin = BuiltinCheckersPlugin(
             clientProvider = clientProvider,
@@ -96,14 +93,9 @@ class ApiScanService(
             clientId = userInput.clientId,
             clientSecret = userInput.clientSecret,
             enableFuzzing = userInput.enableFuzzing
-        ).apply {
-            this.bankToken = token ?: ""
-            this.consentId = consentIdValue ?: ""
-        }
+        )
 
-        val pluginRegistry = PluginRegistry().apply {
-            register(plugin)
-        }
+        val pluginRegistry = PluginRegistry().apply { register(plugin) }
 
         val semaphore = Semaphore(userInput.maxConcurrency)
         coroutineScope {
@@ -126,13 +118,13 @@ class ApiScanService(
                                     issues = issues
                                 )
 
-                                if (!token.isNullOrBlank() && !consentIdValue.isNullOrBlank()) {
+                                if (!bankToken.isNullOrBlank() && !consentId.isNullOrBlank()) {
                                     performEnhancedChecks(
                                         url = testUrl,
                                         method = method,
                                         issues = issues,
-                                        bankToken = token,
-                                        consentId = consentIdValue,
+                                        bankToken = bankToken,
+                                        consentId = consentId,
                                         userInput = userInput
                                     )
                                 }
@@ -185,13 +177,11 @@ class ApiScanService(
         val response = try {
             client.request(url) {
                 this.method = HttpMethod.parse(method)
-
                 if (!url.contains("/auth/bank-token")) {
                     header("Authorization", "Bearer $bankToken")
                     header("X-Consent-Id", consentId)
                     header("X-Requesting-Bank", userInput.requestingBank)
                 }
-
                 if (this.method != HttpMethod.Get) {
                     contentType(ContentType.Application.Json)
                     setBody("{}")

@@ -23,8 +23,8 @@ class BuiltinCheckersPlugin(
 
     override val name: String = "BuiltinCheckers"
 
-    var bankToken: String = ""
-    var consentId: String = ""
+    private var bankToken: String = ""
+    private var consentId: String = ""
 
     private val fuzzer = FuzzerService(
         authService = authService,
@@ -54,6 +54,20 @@ class BuiltinCheckersPlugin(
         return sensitive.any { body.contains(it, ignoreCase = true) }
     }
 
+    private suspend fun ensureTokenAndConsent(issues: MutableList<Issue>) {
+        if (bankToken.isBlank()) {
+            bankToken = authService.getBankToken(bankBaseUrl, clientId, clientSecret, issues)
+        }
+        // Создаём новый consent перед каждой проверкой
+        consentId = authService.createConsent(
+            bankBaseUrl = bankBaseUrl,
+            clientId = clientId,
+            clientSecret = clientSecret,
+            permissions = listOf("ReadAccountsBasic","ReadBalances","ReadTransactionsDetail"),
+            issues = issues
+        )
+    }
+
     override suspend fun runCheck(
         url: String,
         method: String,
@@ -61,9 +75,8 @@ class BuiltinCheckersPlugin(
         issues: MutableList<Issue>
     ) {
         try {
-            // Проверяем, что токен и consent установлены
-            if (bankToken.isBlank()) throw IllegalStateException("bankToken не установлен в BuiltinCheckersPlugin")
-            if (consentId.isBlank()) throw IllegalStateException("consentId не установлен в BuiltinCheckersPlugin")
+            // Обновляем токен и consent
+            ensureTokenAndConsent(issues)
 
             val resp: HttpResponse = authService.performRequestWithAuth(
                 method = methodFromString(method),
@@ -72,7 +85,7 @@ class BuiltinCheckersPlugin(
                 clientId = clientId,
                 clientSecret = clientSecret,
                 consentId = consentId,
-                bodyBlock = { /* нет тела */ },
+                bodyBlock = { /* тело запроса при GET/HEAD обычно пустое */ },
                 issues = issues
             )
 

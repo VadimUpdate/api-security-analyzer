@@ -11,7 +11,6 @@ import io.ktor.http.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
@@ -30,6 +29,7 @@ class AuthService(
      * - добавлением Authorization: Bearer
      * - добавлением X-Requesting-Bank
      * - добавлением X-Consent-Id
+     * - добавлением client_id в GET-запросах
      * - retry на 401 (получение банк-токена /auth/bank-token)
      */
     suspend fun performRequestWithAuth(
@@ -39,6 +39,7 @@ class AuthService(
         clientId: String,
         clientSecret: String,
         consentId: String = "",
+        addClientIdToGet: Boolean = true,
         bodyBlock: (HttpRequestBuilder.() -> Unit)? = null,
         issues: MutableList<Issue>? = null
     ): HttpResponse {
@@ -46,19 +47,16 @@ class AuthService(
         suspend fun execute(token: String?): HttpResponse {
             return client.request(url) {
                 this.method = method
-
-                if (!token.isNullOrBlank()) {
-                    header("Authorization", "Bearer $token")
-                }
-
+                if (!token.isNullOrBlank()) header("Authorization", "Bearer $token")
                 header("X-Requesting-Bank", clientId)
                 if (consentId.isNotBlank()) header("X-Consent-Id", consentId)
-
                 header("Accept", "application/json")
                 header("Accept-Charset", "UTF-8")
                 header("User-Agent", "ApiSecurityAnalyzer/1.0")
                 contentType(ContentType.Application.Json)
-
+                if (addClientIdToGet && method == HttpMethod.Get) {
+                    url { parameters.append("client_id", clientId) }
+                }
                 bodyBlock?.invoke(this)
             }
         }
@@ -71,9 +69,7 @@ class AuthService(
             if (e.response.status.value == 401) {
                 tokenMutex.withLock {
                     val newToken = fetchBankToken(bankBaseUrl, clientId, clientSecret, issues ?: mutableListOf())
-                    if (!newToken.isNullOrBlank()) {
-                        authToken = newToken
-                    }
+                    if (!newToken.isNullOrBlank()) authToken = newToken
                 }
                 return execute(authToken)
             }
@@ -81,9 +77,6 @@ class AuthService(
         }
     }
 
-    /**
-     * Получение токена /auth/bank-token
-     */
     suspend fun fetchBankToken(
         bankBaseUrl: String,
         clientId: String,
@@ -91,54 +84,23 @@ class AuthService(
         issues: MutableList<Issue>
     ): String? {
         val tokenUrl = bankBaseUrl.trimEnd('/') + "/auth/bank-token"
-
         return try {
             val resp: HttpResponse = client.post(tokenUrl) {
-                url {
-                    parameters.append("client_id", clientId)
-                    parameters.append("client_secret", clientSecret)
-                }
+                url { parameters.append("client_id", clientId); parameters.append("client_secret", clientSecret) }
                 contentType(ContentType.Application.Json)
                 setBody("{}")
             }
-
             if (!resp.status.isSuccess()) {
-                addIssue(
-                    issues,
-                    Issue(
-                        type = "TOKEN_HTTP_ERROR",
-                        method = "POST",
-                        path = tokenUrl,
-                        severity = Severity.HIGH,
-                        description = "Ошибка HTTP ${resp.status}",
-                        evidence = resp.bodyAsText()
-                    )
-                )
+                issues.add(Issue("TOKEN_HTTP_ERROR", Severity.HIGH, "Ошибка HTTP ${resp.status}", tokenUrl, "POST", resp.bodyAsText()))
                 return null
             }
-
-            val body = resp.bodyAsText()
-            mapper.readTree(body).path("access_token").asText(null)
-
+            mapper.readTree(resp.bodyAsText()).path("access_token").asText(null)
         } catch (ex: Exception) {
-            addIssue(
-                issues,
-                Issue(
-                    type = "TOKEN_EXCEPTION",
-                    method = "POST",
-                    path = tokenUrl,
-                    severity = Severity.HIGH,
-                    description = "Исключение при запросе bank-token",
-                    evidence = ex.message ?: "unknown"
-                )
-            )
+            issues.add(Issue("TOKEN_EXCEPTION", Severity.HIGH, "Исключение при запросе bank-token", tokenUrl, "POST", ex.message ?: "unknown"))
             null
         }
     }
 
-    /**
-     * Новый метод: возвращает текущий токен или запрашивает новый, если отсутствует
-     */
     suspend fun getBankToken(
         bankBaseUrl: String,
         clientId: String,
@@ -147,80 +109,48 @@ class AuthService(
     ): String {
         val token = authToken
         if (!token.isNullOrBlank()) return token
-
         val newToken = fetchBankToken(bankBaseUrl, clientId, clientSecret, issues)
         if (!newToken.isNullOrBlank()) {
             authToken = newToken
             return newToken
         }
-
         throw IllegalStateException("Не удалось получить bankToken")
     }
 
-    /**
-     * Реальный метод создания consent через /account-consents/request
-     */
     suspend fun createConsent(
         bankBaseUrl: String,
         clientId: String,
-        clientSecret: String,  // передаем сюда
+        clientSecret: String,
         permissions: List<String>,
         expiresInHours: Long = 24,
         issues: MutableList<Issue>
     ): String {
-        val token = getBankToken(bankBaseUrl, clientId, clientSecret, issues) // обязательно передаем clientSecret при первом запросе
+        val token = getBankToken(bankBaseUrl, clientId, clientSecret, issues)
         val consentUrl = "$bankBaseUrl/account-consents/request"
+        val expiration = OffsetDateTime.now().plusHours(expiresInHours).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 
-        val expiration = OffsetDateTime.now().plusHours(expiresInHours)
-            .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+        // Исправлено: добавляем "-1" к client_id
+        val requestBody = mapOf(
+            "client_id" to "$clientId-1",
+            "permissions" to permissions,
+            "expirationDateTime" to expiration
+        )
 
-        return try {
-            val resp: HttpResponse = client.post(consentUrl) {
-                header("Authorization", "Bearer $token")
-                header("X-Requesting-Bank", clientId)
-                contentType(ContentType.Application.Json)
-                setBody(mapOf(
-                    "client_id" to "$clientId-1",
-                    "permissions" to permissions,
-                    "expirationDateTime" to expiration
-                ))
-            }
-
-            if (!resp.status.isSuccess()) {
-                addIssue(
-                    issues,
-                    Issue(
-                        type = "CONSENT_HTTP_ERROR",
-                        method = "POST",
-                        path = consentUrl,
-                        severity = Severity.HIGH,
-                        description = "Ошибка HTTP ${resp.status}",
-                        evidence = resp.bodyAsText()
-                    )
-                )
-                throw IllegalStateException("Не удалось создать consent")
-            }
-
-            val body = resp.bodyAsText()
-            val consentId = mapper.readTree(body).path("consent_id").asText(null)
-                ?: throw IllegalStateException("consent_id не найден в ответе")
-            consentId
-        } catch (ex: Exception) {
-            addIssue(
-                issues,
-                Issue(
-                    type = "CONSENT_EXCEPTION",
-                    method = "POST",
-                    path = consentUrl,
-                    severity = Severity.HIGH,
-                    description = "Исключение при создании consent",
-                    evidence = ex.message ?: "unknown"
-                )
-            )
-            throw ex
+        val resp: HttpResponse = client.post(consentUrl) {
+            header("Authorization", "Bearer $token")
+            header("X-Requesting-Bank", clientId)
+            contentType(ContentType.Application.Json)
+            setBody(requestBody)
         }
-    }
 
+        if (!resp.status.isSuccess()) {
+            issues.add(Issue("CONSENT_HTTP_ERROR", Severity.HIGH, "Ошибка HTTP ${resp.status}", consentUrl, "POST", resp.bodyAsText()))
+            throw IllegalStateException("Не удалось создать consent")
+        }
+
+        return mapper.readTree(resp.bodyAsText()).path("consent_id").asText(null)
+            ?: throw IllegalStateException("consent_id не найден в ответе")
+    }
 
     private fun addIssue(list: MutableList<Issue>, issue: Issue) {
         if (list.none { it.type == issue.type && it.path == issue.path && it.method == issue.method }) {
