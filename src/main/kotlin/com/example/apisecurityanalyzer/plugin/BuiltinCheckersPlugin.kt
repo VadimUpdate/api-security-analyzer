@@ -56,26 +56,22 @@ class BuiltinCheckersPlugin(
         return sensitive.any { body.contains(it, ignoreCase = true) }
     }
 
-    /**
-     * Создать consent только один раз, если ещё не создан.
-     */
     private suspend fun ensureConsent(issues: MutableList<Issue>) {
-        if (consentId == null) {
-            bankToken = authService.getBankToken(
-                bankBaseUrl = bankBaseUrl,
-                clientId = clientId,
-                clientSecret = clientSecret,
-                issues = issues
-            )
+        if (consentId != null && !bankToken.isNullOrBlank()) return
 
-            // Новый вызов БЕЗ параметра permissions (его больше нет в сигнатуре!)
-            consentId = authService.createConsent(
-                bankBaseUrl = bankBaseUrl,
-                clientId = clientId,
-                clientSecret = clientSecret,
-                issues = issues
-            )
-        }
+        bankToken = authService.getBankToken(
+            bankBaseUrl = bankBaseUrl,
+            clientId = clientId,
+            clientSecret = clientSecret,
+            issues = issues
+        )
+
+        consentId = authService.createConsent(
+            bankBaseUrl = bankBaseUrl,
+            clientId = clientId,
+            clientSecret = clientSecret,
+            issues = issues
+        )
     }
 
     override suspend fun runCheck(
@@ -94,11 +90,13 @@ class BuiltinCheckersPlugin(
                 clientId = clientId,
                 clientSecret = clientSecret,
                 consentId = consentId!!,
+                addClientIdToGet = false, // Отключено полностью
                 bodyBlock = { },
                 issues = issues
             )
 
             val code = resp.status.value
+
             if (code !in 200..399) {
                 issues.add(
                     Issue(

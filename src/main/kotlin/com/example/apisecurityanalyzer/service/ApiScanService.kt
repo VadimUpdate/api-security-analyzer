@@ -16,7 +16,6 @@ import io.swagger.v3.parser.OpenAPIV3Parser
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
-import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.net.ConnectException
 import java.net.SocketException
@@ -28,7 +27,6 @@ class ApiScanService(
     private val clientProvider: ClientProvider = ClientProvider(),
     private val authService: AuthService = AuthService(clientProvider)
 ) {
-    private val log = LoggerFactory.getLogger(javaClass)
     private val mapper = jacksonObjectMapper()
     private val client get() = clientProvider.client
 
@@ -36,7 +34,6 @@ class ApiScanService(
         val issues = mutableListOf<Issue>()
 
         val specText = try {
-            log.info("Loading OpenAPI spec from ${userInput.specUrl}")
             client.get(userInput.specUrl).bodyAsText()
         } catch (e: Exception) {
             issues.add(Issue("SPEC_LOAD_ERROR", Severity.HIGH, "Ошибка загрузки спецификации: ${e.message}"))
@@ -54,7 +51,6 @@ class ApiScanService(
         val pathsMap = openApi.paths ?: emptyMap()
         val totalEndpoints = pathsMap.entries.sumOf { (_, pi) -> extractOperations(pi).size }
 
-        // Получаем bankToken один раз
         val bankToken = try {
             authService.getBankToken(userInput.targetUrl, userInput.clientId, userInput.clientSecret, issues)
         } catch (e: Exception) {
@@ -62,7 +58,6 @@ class ApiScanService(
             null
         }
 
-        // Получаем consentId только если bankToken валиден
         val consentId = if (!bankToken.isNullOrBlank()) {
             try {
                 authService.createConsent(
@@ -74,12 +69,9 @@ class ApiScanService(
             } catch (_: Exception) { null }
         } else null
 
-
-        if (consentId.isNullOrBlank()) {
+        if (consentId.isNullOrBlank() && !bankToken.isNullOrBlank()) {
             issues.add(Issue("CONSENT_FAIL", Severity.HIGH, "Consent не получен или не одобрен"))
         }
-
-        log.info("Bank token: $bankToken, Consent ID: $consentId")
 
         val plugin = BuiltinCheckersPlugin(
             clientProvider = clientProvider,
@@ -90,17 +82,14 @@ class ApiScanService(
             enableFuzzing = userInput.enableFuzzing
         )
 
-        // Устанавливаем token и consent в фаззер заранее
         plugin.fuzzer.bankToken = bankToken ?: ""
         plugin.fuzzer.consentId = consentId ?: ""
 
         val pluginRegistry = PluginRegistry().apply { register(plugin) }
 
-        // Получаем список accountId из /accounts
         val accountIds = if (!bankToken.isNullOrBlank() && !consentId.isNullOrBlank()) {
             getAccounts(userInput.targetUrl, bankToken, consentId, userInput.clientId)
         } else emptyList()
-        log.info("Retrieved accountIds: $accountIds")
 
         val semaphore = Semaphore(userInput.maxConcurrency)
         coroutineScope {
@@ -110,31 +99,42 @@ class ApiScanService(
                 for ((method, operation) in operations) {
                     if (operation == null) continue
                     val combinedParams = (pathItem.parameters ?: emptyList()) + (operation.parameters ?: emptyList())
-                    val testUrl = buildUrlFromPath(userInput.targetUrl, pathTemplate, combinedParams)
 
-                    jobs += async {
-                        semaphore.withPermit {
-                            delay(userInput.politenessDelayMs.toLong())
-                            try {
-                                pluginRegistry.runAll(
-                                    url = testUrl,
-                                    method = method,
-                                    operation = operation,
-                                    issues = issues
-                                )
+                    val urlsToTest = when {
+                        pathTemplate.contains("{account_id}") && accountIds.isNotEmpty() ->
+                            accountIds.map { accountId ->
+                                buildUrlFromPath(userInput.targetUrl, pathTemplate.replace("{account_id}", accountId), combinedParams)
+                                    .removeQueryParam("client_id")
+                            }
+                        pathTemplate == "/accounts" && method == "POST" && !bankToken.isNullOrBlank() ->
+                            listOf(buildUrlFromPath(userInput.targetUrl, pathTemplate, combinedParams))
+                        else ->
+                            listOf(buildUrlFromPath(userInput.targetUrl, pathTemplate, combinedParams).removeQueryParam("client_id"))
+                    }
 
-                                if (!bankToken.isNullOrBlank() && !consentId.isNullOrBlank()) {
-                                    performEnhancedChecks(
+                    for (testUrl in urlsToTest) {
+                        jobs += async {
+                            semaphore.withPermit {
+                                delay(userInput.politenessDelayMs.toLong())
+                                try {
+                                    pluginRegistry.runAll(
                                         url = testUrl,
                                         method = method,
-                                        issues = issues,
-                                        bankToken = bankToken,
-                                        consentId = consentId,
-                                        userInput = userInput
+                                        operation = operation,
+                                        issues = issues
                                     )
-                                }
-                            } catch (e: Exception) {
-                                classifyNetworkError(e, testUrl, method, issues)
+
+                                    if (!bankToken.isNullOrBlank() && !consentId.isNullOrBlank()) {
+                                        performEnhancedChecks(
+                                            url = testUrl,
+                                            method = method,
+                                            issues = issues,
+                                            bankToken = bankToken,
+                                            consentId = consentId,
+                                            userInput = userInput
+                                        )
+                                    }
+                                } catch (_: Exception) {}
                             }
                         }
                     }
@@ -179,49 +179,75 @@ class ApiScanService(
         consentId: String,
         userInput: UserInput
     ) {
-        log.info("Performing enhanced check: $method $url")
+        val httpMethod = HttpMethod.parse(method)
+
+        // Формируем finalUrl с client_id для конкретных эндпоинтов
+        val finalUrl = when {
+            url.endsWith("/accounts") && httpMethod == HttpMethod.Post -> "$url?client_id=${userInput.clientId}-1"
+            url.contains("/accounts/") && url.endsWith("/close") && httpMethod == HttpMethod.Put -> "$url?client_id=${userInput.clientId}-1"
+            else -> url
+        }
 
         val response = try {
-            client.request(url) {
-                this.method = HttpMethod.parse(method)
-                if (!url.contains("/auth/bank-token")) {
-                    header("Authorization", "Bearer $bankToken")
-                    header("X-Consent-Id", consentId)
-                    header("X-Requesting-Bank", userInput.requestingBank)
-                }
-                if (this.method != HttpMethod.Get) {
+            client.request(finalUrl) {
+                this.method = httpMethod
+
+                if (url.contains("/auth/bank-token")) return
+
+                // Все межбанковские запросы
+                header("Authorization", "Bearer $bankToken")
+                header("X-Consent-Id", consentId)
+                header("X-Requesting-Bank", userInput.requestingBank)
+
+                if (httpMethod != HttpMethod.Get) {
                     contentType(ContentType.Application.Json)
-                    setBody("{}")
+                    when {
+                        url.endsWith("/accounts") && httpMethod == HttpMethod.Post -> setBody(
+                            """
+                            { "account_type": "checking" }
+                            """.trimIndent()
+                        )
+                        url.contains("/accounts/") && url.endsWith("/close") && httpMethod == HttpMethod.Put -> setBody(
+                            """
+                            { "action": "donate" }
+                            """.trimIndent()
+                        )
+                        url.endsWith("/account-consents/request") && httpMethod == HttpMethod.Post -> setBody(
+                            """
+                            {
+                              "data": {
+                                "permissions": ["ReadAccountsBasic","ReadAccountsDetail","ReadBalances","ManageAccounts"],
+                                "expirationDateTime": "2025-12-31T23:59:59Z"
+                              }
+                            }
+                            """.trimIndent()
+                        )
+                        else -> setBody("{}")
+                    }
                 }
             }
-        } catch (e: Exception) {
-            classifyNetworkError(e, url, method, issues)
+        } catch (ex: Exception) {
+            issues.add(
+                Issue("REQUEST_FAILED", Severity.MEDIUM, "$method $finalUrl → Exception: ${ex.message}")
+            )
             return
         }
 
         val status = response.status.value
-        val body = response.bodyAsText()
+        val body = try { response.bodyAsText() } catch (_: Exception) { "" }
 
         if (status == 403) {
-            issues.add(Issue("ENDPOINT_FORBIDDEN", Severity.LOW, "$method $url → 403", url, method))
+            issues.add(
+                Issue("ENDPOINT_FORBIDDEN", Severity.LOW, "$method $finalUrl → 403", finalUrl, method)
+            )
         }
 
-        checkSensitiveFields(body, url, method, issues)
-    }
-
-    private fun classifyNetworkError(e: Exception, url: String, method: String, issues: MutableList<Issue>) {
-        when (e) {
-            is SocketTimeoutException -> issues.add(Issue("NETWORK_TIMEOUT", Severity.MEDIUM, "Timeout: $url", url, method))
-            is ConnectException, is SocketException -> issues.add(Issue("NETWORK_UNREACHABLE", Severity.MEDIUM, "Нет соединения: $url", url, method))
-            else -> issues.add(Issue("NETWORK_ERROR", Severity.MEDIUM, "Ошибка сети: ${e.message}", url, method))
-        }
-        log.error("Network error on $method $url", e)
+        checkSensitiveFields(body, finalUrl, method, issues)
     }
 
     private fun checkSensitiveFields(body: String?, url: String, method: String, issues: MutableList<Issue>) {
         if (body.isNullOrBlank()) return
         val json = try { mapper.readTree(body) } catch (_: Exception) { return }
-
         val sensitive = listOf("password", "token", "secret", "ssn", "creditCard", "dob")
 
         fun traverse(node: JsonNode) {
@@ -240,7 +266,7 @@ class ApiScanService(
     }
 
     private suspend fun getAccounts(bankBaseUrl: String, bankToken: String, consentId: String, requestingBank: String): List<String> {
-        val url = "$bankBaseUrl/accounts?client_id=$requestingBank"
+        val url = "$bankBaseUrl/accounts?client_id=${requestingBank}-1"
         return try {
             val response = client.request(url) {
                 method = HttpMethod.Get
@@ -250,18 +276,19 @@ class ApiScanService(
                 header("Accept", "application/json")
             }
 
-            if (response.status.value != 200) {
-                log.warn("Failed to fetch accounts: HTTP ${response.status.value}")
-                return emptyList()
-            }
+            if (response.status.value != 200) return emptyList()
 
             val body = response.bodyAsText()
             val json = mapper.readTree(body)
-            val accountsNode = json.get("accounts") ?: return emptyList()
-            accountsNode.mapNotNull { it.get("accountId")?.asText() }
-        } catch (e: Exception) {
-            classifyNetworkError(e, url, "GET", mutableListOf())
-            emptyList()
-        }
+            val accountsNode = json.path("data").path("account")
+            if (!accountsNode.isArray) return emptyList()
+            accountsNode.mapNotNull { it.path("accountId").asText(null) }
+        } catch (_: Exception) { emptyList() }
+    }
+
+    private fun String.removeQueryParam(param: String): String {
+        val uri = java.net.URI(this)
+        val query = uri.query?.split("&")?.filterNot { it.startsWith("$param=") }?.joinToString("&")
+        return java.net.URI(uri.scheme, uri.authority, uri.path, query, uri.fragment).toString()
     }
 }

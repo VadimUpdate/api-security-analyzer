@@ -19,7 +19,6 @@ class FuzzerService(
     private val maxConcurrency: Int = 4,
     private val maxPayloadsPerEndpoint: Int = 10
 ) {
-    // публичные свойства для установки извне
     var bankToken: String = ""
     var consentId: String = ""
 
@@ -68,23 +67,32 @@ class FuzzerService(
         val jobs = mutableListOf<Deferred<Unit>>()
 
         for (payload in payloads) {
+
+            // fuzz query
             jobs += scope.async {
                 sem.withPermit {
                     delay(politenessDelayMs)
                     try { fuzzQuery(url, payload, issues) } catch (_: Throwable) {}
                 }
             }
+
+            // fuzz headers
             jobs += scope.async {
                 sem.withPermit {
                     delay(politenessDelayMs)
                     try { fuzzHeader(url, method, payload, issues) } catch (_: Throwable) {}
                 }
             }
+
+            // fuzz body — НО ТОЛЬКО если эндпоинт НЕ строгий
             if (method in listOf(HttpMethod.Post, HttpMethod.Put, HttpMethod.Patch, HttpMethod.Delete)) {
-                jobs += scope.async {
-                    sem.withPermit {
-                        delay(politenessDelayMs)
-                        try { fuzzBody(url, method, payload, issues) } catch (_: Throwable) {}
+
+                if (!isStrictEndpoint(url)) {
+                    jobs += scope.async {
+                        sem.withPermit {
+                            delay(politenessDelayMs)
+                            try { fuzzBody(url, method, payload, issues) } catch (_: Throwable) {}
+                        }
                     }
                 }
             }
@@ -93,8 +101,24 @@ class FuzzerService(
         jobs.awaitAll()
     }
 
+    /**
+     * Эндпоинты, у которых тело строго валидируется
+     * и пустое/фуззинговое тело вызывает 422, хотя это не уязвимость.
+     */
+    private fun isStrictEndpoint(url: String): Boolean {
+        val clean = url.lowercase()
+
+        return clean.contains("/accounts") && (
+                clean.endsWith("/accounts")            // POST /accounts
+                        || clean.contains("/close")            // PUT /accounts/{id}/close
+                        || clean.contains("/transfer")         // возможные банковские операции
+                        || clean.contains("/donate")
+                )
+    }
+
     private suspend fun fuzzQuery(url: String, payload: String, issues: MutableList<Issue>) {
         val fuzzUrl = if (url.contains("?")) "$url&fuzz=${encode(payload)}" else "$url?fuzz=${encode(payload)}"
+
         val resp = authService.performRequestWithAuth(
             method = HttpMethod.Get,
             url = fuzzUrl,
@@ -102,6 +126,7 @@ class FuzzerService(
             clientId = clientId,
             clientSecret = clientSecret,
             consentId = consentId,
+            addClientIdToGet = false,
             bodyBlock = {},
             issues = issues
         )
@@ -116,6 +141,7 @@ class FuzzerService(
             clientId = clientId,
             clientSecret = clientSecret,
             consentId = consentId,
+            addClientIdToGet = false,
             bodyBlock = {
                 header("X-Scanner-Fuzz", payload)
                 header("User-Agent", "ApiSecurityAnalyzer-Fuzzer/1.0")
@@ -127,6 +153,7 @@ class FuzzerService(
 
     private suspend fun fuzzBody(url: String, method: HttpMethod, payload: String, issues: MutableList<Issue>) {
         val jsonBody = """{"__fuzz":"${escapeJson(payload)}"}"""
+
         val resp = authService.performRequestWithAuth(
             method = method,
             url = url,
@@ -134,6 +161,7 @@ class FuzzerService(
             clientId = clientId,
             clientSecret = clientSecret,
             consentId = consentId,
+            addClientIdToGet = false,
             bodyBlock = {
                 contentType(ContentType.Application.Json)
                 setBody(jsonBody)
@@ -142,6 +170,7 @@ class FuzzerService(
             },
             issues = issues
         )
+
         analyzeResponseForFuzz(url, method.value, payload, safeBodyText(resp), resp.status.value, issues)
     }
 
@@ -156,42 +185,50 @@ class FuzzerService(
         val found = evidenceIndicators.filter { responseBody.contains(it, ignoreCase = true) }
 
         if (responseBody.contains("<script", ignoreCase = true) ||
-            responseBody.contains("alert(", ignoreCase = true)
-        ) addIfNotDuplicate(
-            issues,
-            Issue(
-                type = "XSS",
-                severity = Severity.HIGH,
-                description = "Потенциальная XSS через $method $targetUrl — payload: ${short(payload)} — found: ${found.take(4)}"
+            responseBody.contains("alert(", ignoreCase = true)) {
+            addIfNotDuplicate(
+                issues,
+                Issue(
+                    type = "XSS",
+                    severity = Severity.HIGH,
+                    description = "Потенциальная XSS через $method $targetUrl — payload: ${short(payload)} — found: ${found.take(4)}"
+                )
             )
-        )
+        }
 
-        if (found.any { it.contains("sql", ignoreCase = true) || it.contains("syntax", ignoreCase = true) }) addIfNotDuplicate(
-            issues,
-            Issue(
-                type = "INJECTION",
-                severity = Severity.HIGH,
-                description = "Потенциальная инъекция $method $targetUrl — payload: ${short(payload)} — indicators: ${found.take(5)} — HTTP $statusCode"
+        if (found.any { it.contains("sql", ignoreCase = true) || it.contains("syntax", ignoreCase = true) }) {
+            addIfNotDuplicate(
+                issues,
+                Issue(
+                    type = "INJECTION",
+                    severity = Severity.HIGH,
+                    description = "Потенциальная инъекция $method $targetUrl — payload: ${short(payload)} — indicators: ${found.take(5)} — HTTP $statusCode"
+                )
             )
-        )
+        }
 
-        if (responseBody.contains("root:x:", ignoreCase = true) || responseBody.contains("passwd", ignoreCase = true)) addIfNotDuplicate(
-            issues,
-            Issue(
-                type = "PATH_TRAVERSAL",
-                severity = Severity.HIGH,
-                description = "Потенциальная утечка файлов $method $targetUrl — payload: ${short(payload)}"
+        if (responseBody.contains("root:x:", ignoreCase = true) ||
+            responseBody.contains("passwd", ignoreCase = true)) {
+            addIfNotDuplicate(
+                issues,
+                Issue(
+                    type = "PATH_TRAVERSAL",
+                    severity = Severity.HIGH,
+                    description = "Потенциальная утечка файлов $method $targetUrl — payload: ${short(payload)}"
+                )
             )
-        )
+        }
 
-        if (statusCode >= 500) addIfNotDuplicate(
-            issues,
-            Issue(
-                type = "SERVER_ERROR_ON_FUZZ",
-                severity = Severity.MEDIUM,
-                description = "Сервер возвращает $statusCode после payload $method $targetUrl — payload: ${short(payload)}"
+        if (statusCode >= 500) {
+            addIfNotDuplicate(
+                issues,
+                Issue(
+                    type = "SERVER_ERROR_ON_FUZZ",
+                    severity = Severity.MEDIUM,
+                    description = "Сервер возвращает $statusCode после payload $method $targetUrl — payload: ${short(payload)}"
+                )
             )
-        )
+        }
     }
 
     private fun short(s: String, limit: Int = 120) = if (s.length <= limit) s else s.take(limit) + "..."
@@ -202,7 +239,8 @@ class FuzzerService(
         if (list.none { it.type == issue.type }) list += issue
     }
 
-    private fun safeBodyText(resp: HttpResponse): String = try { runBlocking { resp.bodyAsText() } } catch (_: Throwable) { "" }
+    private fun safeBodyText(resp: HttpResponse): String =
+        try { runBlocking { resp.bodyAsText() } } catch (_: Throwable) { "" }
 
     private class Semaphore(private val permits: Int) {
         private val mutex = Mutex()
@@ -214,7 +252,11 @@ class FuzzerService(
                 mutex.withLock {
                     if (available > 0) { available--; allowed = true }
                 }
-                if (allowed) return try { block() } finally { mutex.withLock { available++ } } else delay(10)
+                if (allowed) {
+                    return try { block() } finally { mutex.withLock { available++ } }
+                } else {
+                    delay(10)
+                }
             }
         }
     }

@@ -29,7 +29,7 @@ class AuthService(
      * - добавлением Authorization: Bearer
      * - добавлением X-Requesting-Bank
      * - добавлением X-Consent-Id
-     * - добавлением client_id в GET-запросах
+     * - добавлением client_id в GET/POST/PUT-запросах при addClientIdToGet = true
      * - retry на 401 (получение банк-токена /auth/bank-token)
      */
     suspend fun performRequestWithAuth(
@@ -54,9 +54,12 @@ class AuthService(
                 header("Accept-Charset", "UTF-8")
                 header("User-Agent", "ApiSecurityAnalyzer/1.0")
                 contentType(ContentType.Application.Json)
-                if (addClientIdToGet && method == HttpMethod.Get) {
+
+                // Добавляем client_id в query для GET, POST, PUT, PATCH
+                if (addClientIdToGet && method in listOf(HttpMethod.Get, HttpMethod.Post, HttpMethod.Put, HttpMethod.Patch)) {
                     url { parameters.append("client_id", clientId) }
                 }
+
                 bodyBlock?.invoke(this)
             }
         }
@@ -129,7 +132,7 @@ class AuthService(
 
         val requestBody = mapOf(
             "client_id" to "$clientId-1",
-            "permissions" to listOf("ReadAccountsBasic","ReadAccountsDetail","ReadBalances"),
+            "permissions" to listOf("ReadAccountsBasic","ReadAccountsDetail","ReadBalances","ManageAccounts"),
             "expirationDateTime" to expiration
         )
 
@@ -157,7 +160,6 @@ class AuthService(
         return mapper.readTree(resp.bodyAsText()).path("consent_id").asText()
             ?: throw IllegalStateException("consent_id не найден в ответе")
     }
-
 
     private fun addIssue(list: MutableList<Issue>, issue: Issue) {
         if (list.none { it.type == issue.type && it.path == issue.path && it.method == issue.method }) {
