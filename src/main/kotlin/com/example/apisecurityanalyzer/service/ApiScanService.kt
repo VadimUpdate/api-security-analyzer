@@ -89,8 +89,9 @@ class ApiScanService(
             enableFuzzing = userInput.enableFuzzing
         )
 
-        plugin.fuzzer.bankToken = bankToken ?: ""
-        plugin.fuzzer.consentId = paymentConsentId ?: accountConsentId ?: productConsentId ?: ""
+        // === Исправлено ===
+        plugin.bankToken = bankToken ?: ""
+        plugin.consentId = paymentConsentId ?: accountConsentId ?: productConsentId ?: ""
 
         val pluginRegistry = PluginRegistry().apply { register(plugin) }
 
