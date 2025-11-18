@@ -1,4 +1,4 @@
-package com.example.apianalyzer.service
+package com.example.apianalyzer.model
 
 data class UserInput(
     val clientId: String,

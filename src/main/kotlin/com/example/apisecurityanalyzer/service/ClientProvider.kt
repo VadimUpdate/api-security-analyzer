@@ -7,11 +7,14 @@ import io.ktor.client.plugins.logging.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.serialization.jackson.*
-
+import org.springframework.stereotype.Service
 /**
  * Централизованный провайдер Ktor HttpClient.
  * Поддерживает таймауты, логирование, JSON-сериализацию и базовые заголовки.
  */
+
+
+@Service
 class ClientProvider {
 
     val client: HttpClient = HttpClient(CIO) {

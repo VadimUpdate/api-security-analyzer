@@ -25,20 +25,19 @@ class PluginRegistry {
         method: String,
         operation: Operation,
         issues: MutableList<Issue>,
-        enableFuzzing: Boolean = false
+        baselineBody: String? = null,
+        baselineHeaders: Map<String, String> = emptyMap(),
+        enableFuzzing: Boolean = true
     ) {
         for (plugin in plugins) {
             try {
                 val methodRef = plugin::class.members.find { it.name == "runCheck" } ?: continue
 
                 when (methodRef.parameters.size) {
-
-                    // plugin.runCheck(url, method, operation, issues)
+                    // plugin.runCheck(url, method, operation, issues, baselineBody, baselineHeaders, enableFuzzing)
+                    8 -> methodRef.callSuspend(plugin, url, method, operation, issues, baselineBody, baselineHeaders, enableFuzzing)
                     5 -> methodRef.callSuspend(plugin, url, method, operation, issues)
-
-                    // plugin.runCheck(url, method, operation, issues, enableFuzzing)
                     6 -> methodRef.callSuspend(plugin, url, method, operation, issues, enableFuzzing)
-
                     else -> {
                         issues += Issue(
                             type = "PLUGIN_SIGNATURE_ERROR",

@@ -2,7 +2,7 @@ package com.example.apianalyzer.controller
 
 import com.example.apianalyzer.model.ScanReport
 import com.example.apianalyzer.service.ApiScanService
-import com.example.apianalyzer.service.UserInput
+import com.example.apianalyzer.model.UserInput
 import org.springframework.web.bind.annotation.*
 import kotlinx.coroutines.runBlocking
 

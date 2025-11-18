@@ -13,7 +13,9 @@ import kotlinx.coroutines.sync.withLock
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
+import org.springframework.stereotype.Service
 
+@Service
 class AuthService(
     private val clientProvider: ClientProvider
 ) {
