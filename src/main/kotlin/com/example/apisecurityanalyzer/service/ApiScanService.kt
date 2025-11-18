@@ -8,14 +8,22 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import io.ktor.client.plugins.*
 import io.ktor.http.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.serialization.jackson.*
 import io.swagger.v3.oas.models.OpenAPI
+import io.swagger.v3.oas.models.parameters.Parameter
 import io.swagger.v3.parser.OpenAPIV3Parser
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import org.springframework.stereotype.Service
 import java.time.Instant
+import io.ktor.client.request.setBody
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.get
 
 @Service
 class ApiScanService(
@@ -46,7 +54,6 @@ class ApiScanService(
         val pathsMap = openApi.paths ?: emptyMap()
         val totalEndpoints = pathsMap.entries.sumOf { (_, pi) -> extractOperations(pi).size }
 
-        // Основной bank token
         val bankToken = try {
             authService.getBankToken(userInput.targetUrl, userInput.clientId, userInput.clientSecret, issues)
         } catch (e: Exception) {
@@ -54,32 +61,31 @@ class ApiScanService(
             null
         }
 
-        // Consent для аккаунтов (read access)
         val accountConsentId = if (!bankToken.isNullOrBlank()) {
-            try {
-                authService.createConsent(
-                    bankBaseUrl = userInput.targetUrl,
-                    clientId = userInput.clientId,
-                    clientSecret = userInput.clientSecret,
-                    issues = issues
-                )
-            } catch (_: Exception) { null }
+            try { authService.createConsent(userInput.targetUrl, userInput.clientId, userInput.clientSecret, issues) } catch (_: Exception) { null }
         } else null
 
-        if (accountConsentId.isNullOrBlank() && !bankToken.isNullOrBlank()) {
+        if (accountConsentId.isNullOrBlank() && !bankToken.isNullOrBlank())
             issues.add(Issue("CONSENT_FAIL", Severity.HIGH, "Account consent не получен или не одобрен"))
-        }
 
-        // Consent для платежей (payment access)
         val paymentConsentId = if (!bankToken.isNullOrBlank()) {
+            try { createPaymentConsent(userInput, bankToken, issues) } catch (_: Exception) { null }
+        } else null
+
+        if (paymentConsentId.isNullOrBlank() && !bankToken.isNullOrBlank())
+            issues.add(Issue("PAYMENT_CONSENT_FAIL", Severity.HIGH, "Payment consent не получен или не одобрен"))
+
+        var productRequestId: String? = null
+        val productConsentId = if (!bankToken.isNullOrBlank()) {
             try {
-                createPaymentConsent(userInput, bankToken, issues)
+                val (consentId, requestId) = createProductAgreementConsent(userInput, bankToken, issues)
+                productRequestId = requestId
+                consentId
             } catch (_: Exception) { null }
         } else null
 
-        if (paymentConsentId.isNullOrBlank() && !bankToken.isNullOrBlank()) {
-            issues.add(Issue("PAYMENT_CONSENT_FAIL", Severity.HIGH, "Payment consent не получен или не одобрен"))
-        }
+        if (productConsentId.isNullOrBlank() && !bankToken.isNullOrBlank())
+            issues.add(Issue("PRODUCT_CONSENT_FAIL", Severity.HIGH, "Product agreement consent не получен или не одобрен"))
 
         val plugin = BuiltinCheckersPlugin(
             clientProvider = clientProvider,
@@ -90,15 +96,25 @@ class ApiScanService(
             enableFuzzing = userInput.enableFuzzing
         )
 
-        // Передаём разные consent в fuzzer
         plugin.fuzzer.bankToken = bankToken ?: ""
-        plugin.fuzzer.consentId = paymentConsentId ?: accountConsentId ?: ""
+        plugin.fuzzer.consentId = paymentConsentId ?: accountConsentId ?: productConsentId ?: ""
 
         val pluginRegistry = PluginRegistry().apply { register(plugin) }
 
         val accountId: String? =
             if (!bankToken.isNullOrBlank() && !accountConsentId.isNullOrBlank())
                 getFirstAccount(userInput.targetUrl, bankToken, accountConsentId, userInput.clientId)
+            else null
+
+        // Получаем accountNumber для выпуска карты
+        val accountNumber: String? =
+            if (!bankToken.isNullOrBlank() && !accountConsentId.isNullOrBlank() && accountId != null)
+                getFirstAccountNumber(userInput.targetUrl, bankToken, accountConsentId, userInput.clientId, accountId)
+            else null
+
+        val cardId: String? =
+            if (!bankToken.isNullOrBlank() && !accountConsentId.isNullOrBlank() && accountNumber != null)
+                getFirstCard(userInput.targetUrl, bankToken, accountConsentId, userInput.clientId, accountNumber)
             else null
 
         val semaphore = Semaphore(userInput.maxConcurrency)
@@ -108,76 +124,70 @@ class ApiScanService(
 
             for ((pathTemplate, pathItem) in pathsMap) {
                 val operations = extractOperations(pathItem)
-
                 for ((method, operation) in operations) {
                     if (operation == null) continue
 
-                    val combinedParams = (pathItem.parameters ?: emptyList()) +
-                            (operation.parameters ?: emptyList())
+                    val combinedParams: List<Parameter> =
+                        (pathItem.parameters ?: emptyList()) + (operation.parameters ?: emptyList())
 
                     val url = when {
                         pathTemplate.contains("{account_id}") && accountId != null ->
-                            buildUrlFromPath(
-                                userInput.targetUrl,
-                                pathTemplate.replace("{account_id}", accountId),
-                                combinedParams
-                            ).removeQueryParam("client_id")
+                            buildUrlFromPath(userInput.targetUrl, pathTemplate.replace("{account_id}", accountId), combinedParams)
+                                .removeQueryParam("client_id")
+
+                        pathTemplate.startsWith("/cards") ->
+                            handleCardPaths(pathTemplate, userInput, combinedParams, accountNumber, cardId, accountConsentId, bankToken)
 
                         pathTemplate == "/accounts" && method == "POST" ->
                             buildUrlFromPath(userInput.targetUrl, pathTemplate, combinedParams)
 
                         pathTemplate.contains("{consent_id}") && pathTemplate.startsWith("/payment-consents") && paymentConsentId != null ->
-                            buildUrlFromPath(
-                                userInput.targetUrl,
-                                pathTemplate.replace("{consent_id}", paymentConsentId),
-                                combinedParams
-                            )
+                            buildUrlFromPath(userInput.targetUrl, pathTemplate.replace("{consent_id}", paymentConsentId), combinedParams)
+
+                        pathTemplate.contains("{consent_id}") && pathTemplate.startsWith("/product-agreement-consents") && productConsentId != null ->
+                            buildUrlFromPath(userInput.targetUrl, pathTemplate.replace("{consent_id}", productConsentId), combinedParams)
+
+                        pathTemplate.contains("{id}") && pathTemplate.startsWith("/product-agreements") && productRequestId != null ->
+                            buildUrlFromPath(userInput.targetUrl, pathTemplate.replace("{id}", productRequestId), combinedParams)
+
+                        pathTemplate == "/product-agreements" -> {
+                            val baseUrl = buildUrlFromPath(userInput.targetUrl, pathTemplate, combinedParams)
+                            "$baseUrl?client_id=${userInput.clientId}-1"
+                        }
 
                         else ->
-                            buildUrlFromPath(
-                                userInput.targetUrl,
-                                pathTemplate,
-                                combinedParams
-                            ).removeQueryParam("client_id")
+                            buildUrlFromPath(userInput.targetUrl, pathTemplate, combinedParams)
+                                .removeQueryParam("client_id")
                     }
 
                     jobs += async {
                         semaphore.withPermit {
                             delay(userInput.politenessDelayMs.toLong())
-
                             try {
-                                pluginRegistry.runAll(
-                                    url = url,
-                                    method = method,
-                                    operation = operation,
-                                    issues = issues
-                                )
+                                pluginRegistry.runAll(url, method, operation, issues)
 
                                 if (!bankToken.isNullOrBlank()) {
-                                    val consentToUse = if (pathTemplate.startsWith("/payment-consents")) paymentConsentId else accountConsentId
-                                    if (!consentToUse.isNullOrBlank()) {
-                                        performEnhancedChecks(
-                                            url = url,
-                                            method = method,
-                                            issues = issues,
-                                            bankToken = bankToken,
-                                            consentId = consentToUse,
-                                            userInput = userInput
-                                        )
+                                    val consentToUse = when {
+                                        pathTemplate.startsWith("/payment-consents") -> paymentConsentId
+                                        pathTemplate.startsWith("/product-agreement-consents") -> productConsentId
+                                        pathTemplate.startsWith("/product-agreements") -> productConsentId
+                                        pathTemplate.startsWith("/cards") -> accountConsentId
+                                        else -> accountConsentId
                                     }
+                                    if (!consentToUse.isNullOrBlank())
+                                        performEnhancedChecks(url, method, issues, bankToken, consentToUse, userInput, productRequestId)
                                 }
                             } catch (_: Exception) {}
                         }
                     }
                 }
             }
-
             jobs.awaitAll()
         }
 
         runGlobalChecks(client, userInput.targetUrl, issues)
 
-        ScanReport(
+        return@runBlocking ScanReport(
             specUrl = userInput.specUrl,
             targetUrl = userInput.targetUrl,
             timestamp = Instant.now(),
@@ -192,6 +202,137 @@ class ApiScanService(
         )
     }
 
+    // ----------------------------------------------------------------------
+    // КАРТЫ
+    // ----------------------------------------------------------------------
+    private fun handleCardPaths(
+        pathTemplate: String,
+        userInput: UserInput,
+        combinedParams: List<Parameter>,
+        accountNumber: String? = null,
+        cardId: String? = null,
+        accountConsentId: String? = null,
+        bankToken: String? = null
+    ): String {
+        val base = userInput.targetUrl
+        return when {
+            pathTemplate == "/cards" -> {
+                var url = "$base/cards?client_id=${userInput.clientId}-1"
+                if (!accountNumber.isNullOrBlank()) url += "&account_id=$accountNumber"
+
+                if (!accountNumber.isNullOrBlank() && !accountConsentId.isNullOrBlank() && !bankToken.isNullOrBlank()) {
+                    runBlocking {
+                        val newCardId = issueNewCard(
+                            bankBaseUrl = base,
+                            bankToken = bankToken,
+                            consentId = accountConsentId,
+                            requestingBank = userInput.clientId,
+                            clientId = userInput.clientId,
+                            accountNumber = accountNumber
+                        )
+                        if (!newCardId.isNullOrBlank()) {
+                            println("New card issued: $newCardId")
+                        }
+                    }
+                }
+
+                url
+            }
+
+            pathTemplate.contains("{card_id}") -> {
+                val id = cardId ?: "card-sample-id"
+                buildUrlFromPath(base, pathTemplate.replace("{card_id}", id), combinedParams)
+            }
+
+            else -> buildUrlFromPath(base, pathTemplate, combinedParams)
+        }
+    }
+
+    private suspend fun getFirstAccountNumber(
+        bankBaseUrl: String,
+        bankToken: String,
+        consentId: String,
+        clientId: String,
+        accountId: String
+    ): String? {
+        val url = "$bankBaseUrl/accounts?client_id=${clientId}-1"
+        return try {
+            val response = client.request(url) {
+                method = HttpMethod.Get
+                header("Authorization", "Bearer $bankToken")
+                header("X-Consent-Id", consentId)
+                header("X-Requesting-Bank", clientId)
+                header("Accept", "application/json")
+            }
+            if (response.status.value != 200) return null
+            val json = mapper.readTree(response.bodyAsText())
+            val accountsNode = json.path("data").path("account")
+            if (!accountsNode.isArray || accountsNode.isEmpty) return null
+            accountsNode.first().path("accountNumber").asText(null)
+        } catch (_: Exception) { null }
+    }
+
+    private suspend fun getFirstCard(
+        bankBaseUrl: String,
+        bankToken: String,
+        consentId: String,
+        clientId: String,
+        accountId: String?
+    ): String? {
+        if (accountId.isNullOrBlank()) return null
+        val url = "$bankBaseUrl/cards?client_id=${clientId}-1&account_id=$accountId"
+        return try {
+            val response = client.request(url) {
+                method = HttpMethod.Get
+                header("Authorization", "Bearer $bankToken")
+                header("X-Consent-Id", consentId)
+                header("X-Requesting-Bank", clientId)
+                header("Accept", "application/json")
+            }
+            if (response.status.value != 200) return null
+            val json = mapper.readTree(response.bodyAsText())
+            val cardsNode = json.path("data").path("cards")
+            if (!cardsNode.isArray || cardsNode.isEmpty) return null
+            cardsNode.first().path("cardId").asText(null)
+        } catch (_: Exception) { null }
+    }
+
+    private suspend fun issueNewCard(
+        bankBaseUrl: String,
+        bankToken: String,
+        consentId: String,
+        requestingBank: String,
+        clientId: String,
+        accountNumber: String,
+        cardName: String = "Visa Classic",
+        cardType: String = "debit"
+    ): String? {
+        val url = "$bankBaseUrl/cards?client_id=${clientId}-1&account_id=$accountNumber"
+        return try {
+            val response = client.post(url) {
+                contentType(ContentType.Application.Json)
+                header("Authorization", "Bearer $bankToken")
+                header("X-Requesting-Bank", requestingBank)
+                header("X-Consent-Id", consentId)
+                setBody(
+                    """
+                    {
+                      "account_number": "$accountNumber",
+                      "card_name": "$cardName",
+                      "card_type": "$cardType"
+                    }
+                    """.trimIndent()
+                )
+            }
+            if (response.status.value != 200 && response.status.value != 201) return null
+            val json = mapper.readTree(response.bodyAsText())
+            json.path("cardId").asText(null)
+        } catch (_: Exception) { null }
+    }
+
+    // ----------------------------------------------------------------------
+    // Общие функции и проверки
+    // ----------------------------------------------------------------------
     private fun emptyReport(userInput: UserInput, issues: List<Issue>) =
         ScanReport(
             specUrl = userInput.specUrl,
@@ -209,124 +350,98 @@ class ApiScanService(
         issues: MutableList<Issue>,
         bankToken: String,
         consentId: String,
-        userInput: UserInput
+        userInput: UserInput,
+        productRequestId: String? = null
     ) {
         val httpMethod = HttpMethod.parse(method)
-        val finalUrl = url
+        val consentHeaderName = when {
+            url.contains("/product-agreements") -> "X-Product-Agreement-Consent-Id"
+            url.contains("/cards") -> "X-Consent-Id"
+            else -> "X-Consent-Id"
+        }
 
         val response = try {
-            client.request(finalUrl) {
+            client.request(url) {
                 this.method = httpMethod
                 header("Authorization", "Bearer $bankToken")
-                header("X-Consent-Id", consentId)
-                header("X-Requesting-Bank", userInput.requestingBank)
-
+                header(consentHeaderName, consentId)
+                header("X-Requesting-Bank", if (url.contains("/cards")) userInput.clientId else userInput.requestingBank)
                 if (httpMethod != HttpMethod.Get) {
                     contentType(ContentType.Application.Json)
                     setBody("{}")
                 }
             }
         } catch (ex: Exception) {
-            issues.add(
-                Issue("REQUEST_FAILED", Severity.MEDIUM, "$method $finalUrl → Exception: ${ex.message}")
-            )
+            issues.add(Issue("REQUEST_FAILED", Severity.MEDIUM, "$method $url → Exception: ${ex.message}"))
             return
         }
 
         val status = response.status.value
         val body = runCatching { response.bodyAsText() }.getOrNull()
+        if (status == 403)
+            issues.add(Issue("ENDPOINT_FORBIDDEN", Severity.LOW, "$method $url → 403", url, method))
 
-        if (status == 403) {
-            issues.add(
-                Issue("ENDPOINT_FORBIDDEN", Severity.LOW, "$method $finalUrl → 403", finalUrl, method)
-            )
-        }
-
-        checkSensitiveFields(body, finalUrl, method, issues)
+        checkSensitiveFields(body, url, method, issues)
     }
 
     private fun checkSensitiveFields(body: String?, url: String, method: String, issues: MutableList<Issue>) {
         if (body.isNullOrBlank()) return
         val json = runCatching { mapper.readTree(body) }.getOrNull() ?: return
-
         val sensitive = listOf("password", "token", "secret", "ssn", "creditCard", "dob")
 
         fun traverse(node: JsonNode) {
             if (node.isObject) {
                 node.fields().forEach { (key, value) ->
                     if (sensitive.any { key.contains(it, ignoreCase = true) }) {
-                        issues.add(
-                            Issue("EXCESSIVE_DATA_EXPOSURE", Severity.HIGH,
-                                "Ответ содержит чувствительное поле: $key", url, method)
-                        )
+                        issues.add(Issue("EXCESSIVE_DATA_EXPOSURE", Severity.HIGH, "Ответ содержит чувствительное поле: $key", url, method))
                     }
                     traverse(value)
                 }
-            } else if (node.isArray) {
-                node.forEach { traverse(it) }
-            }
+            } else if (node.isArray) node.forEach { traverse(it) }
         }
-
         traverse(json)
     }
 
-    private suspend fun getFirstAccount(
-        bankBaseUrl: String,
-        bankToken: String,
-        consentId: String,
-        requestingBank: String
-    ): String? {
-        val url = "$bankBaseUrl/accounts?client_id=${requestingBank}-1"
-
+    private suspend fun getFirstAccount(bankBaseUrl: String, bankToken: String, consentId: String, clientId: String): String? {
+        val url = "$bankBaseUrl/accounts?client_id=${clientId}-1"
         return try {
             val response = client.request(url) {
                 method = HttpMethod.Get
                 header("Authorization", "Bearer $bankToken")
                 header("X-Consent-Id", consentId)
-                header("X-Requesting-Bank", requestingBank)
+                header("X-Requesting-Bank", clientId)
                 header("Accept", "application/json")
             }
-
             if (response.status.value != 200) return null
-
-            val body = response.bodyAsText()
-            val json = mapper.readTree(body)
+            val json = mapper.readTree(response.bodyAsText())
             val accountsNode = json.path("data").path("account")
-
             if (!accountsNode.isArray || accountsNode.isEmpty) return null
-
             accountsNode.first().path("accountId").asText(null)
-        } catch (_: Exception) {
-            null
-        }
+        } catch (_: Exception) { null }
     }
 
-    private suspend fun createPaymentConsent(
-        userInput: UserInput,
-        bankToken: String,
-        issues: MutableList<Issue>
-    ): String? {
+    private suspend fun createPaymentConsent(userInput: UserInput, bankToken: String, issues: MutableList<Issue>): String? {
         val url = "${userInput.targetUrl}/payment-consents/request"
-
         return try {
             val response = client.post(url) {
                 contentType(ContentType.Application.Json)
                 header("Authorization", "Bearer $bankToken")
                 header("X-Requesting-Bank", userInput.requestingBank)
-                setBody("""{
+                setBody(
+                    """
+                    {
                       "requesting_bank": "${userInput.requestingBank}",
                       "client_id": "${userInput.clientId}-1",
                       "consent_type": "single_use",
                       "amount": 100.0,
                       "debtor_account": "",
                       "reference": "API scan payment"
-                    }""".trimIndent())
+                    }
+                    """.trimIndent()
+                )
             }
-
             if (response.status.value != 200) return null
-
-            val body = response.bodyAsText()
-            val json = mapper.readTree(body)
+            val json = mapper.readTree(response.bodyAsText())
             json.path("consent_id").asText(null)
         } catch (ex: Exception) {
             issues.add(Issue("PAYMENT_CONSENT_FAIL", Severity.HIGH, "Не удалось создать Payment Consent: ${ex.message}"))
@@ -334,12 +449,45 @@ class ApiScanService(
         }
     }
 
+    private suspend fun createProductAgreementConsent(
+        userInput: UserInput,
+        bankToken: String,
+        issues: MutableList<Issue>
+    ): Pair<String?, String?> {
+        val url = "${userInput.targetUrl}/product-agreement-consents/request?client_id=${userInput.clientId}-1"
+        return try {
+            val response = client.post(url) {
+                contentType(ContentType.Application.Json)
+                header("Authorization", "Bearer $bankToken")
+                header("X-Requesting-Bank", userInput.requestingBank)
+                setBody(
+                    """
+                    {
+                      "requesting_bank": "${userInput.requestingBank}",
+                      "client_id": "${userInput.clientId}-1",
+                      "read_product_agreements": true,
+                      "open_product_agreements": true,
+                      "close_product_agreements": false,
+                      "allowed_product_types": ["deposit","card"],
+                      "max_amount": 1000000.00,
+                      "valid_until": "2025-12-31T23:59:59",
+                      "reason": "Финансовый агрегатор для управления продуктами"
+                    }
+                    """.trimIndent()
+                )
+            }
+            if (response.status.value != 200) return null to null
+            val json = mapper.readTree(response.bodyAsText())
+            json.path("consent_id").asText(null) to json.path("request_id").asText(null)
+        } catch (ex: Exception) {
+            issues.add(Issue("PRODUCT_CONSENT_FAIL", Severity.HIGH, "Не удалось создать Product Agreement Consent: ${ex.message}"))
+            null to null
+        }
+    }
+
     private fun String.removeQueryParam(param: String): String {
         val uri = java.net.URI(this)
-        val query = uri.query?.split("&")
-            ?.filterNot { it.startsWith("$param=") }
-            ?.joinToString("&")
-
+        val query = uri.query?.split("&")?.filterNot { it.startsWith("$param=") }?.joinToString("&")
         return java.net.URI(uri.scheme, uri.authority, uri.path, query, uri.fragment).toString()
     }
 }

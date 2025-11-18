@@ -124,7 +124,8 @@ class AuthService(
         bankBaseUrl: String,
         clientId: String,
         clientSecret: String,
-        issues: MutableList<Issue>
+        issues: MutableList<Issue>,
+        permissions: List<String> = listOf("ReadCards","ReadAccountsBasic","ReadAccountsDetail","ReadBalances","ManageAccounts","ManageCards")
     ): String {
         val token = getBankToken(bankBaseUrl, clientId, clientSecret, issues)
         val consentUrl = "$bankBaseUrl/account-consents/request"
@@ -132,7 +133,7 @@ class AuthService(
 
         val requestBody = mapOf(
             "client_id" to "$clientId-1",
-            "permissions" to listOf("ReadAccountsBasic","ReadAccountsDetail","ReadBalances","ManageAccounts"),
+            "permissions" to permissions,
             "expirationDateTime" to expiration
         )
 
@@ -160,6 +161,7 @@ class AuthService(
         return mapper.readTree(resp.bodyAsText()).path("consent_id").asText()
             ?: throw IllegalStateException("consent_id не найден в ответе")
     }
+
 
     private fun addIssue(list: MutableList<Issue>, issue: Issue) {
         if (list.none { it.type == issue.type && it.path == issue.path && it.method == issue.method }) {
