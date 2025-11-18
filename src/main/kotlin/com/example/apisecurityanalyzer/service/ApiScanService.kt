@@ -106,7 +106,6 @@ class ApiScanService(
                 getFirstAccount(userInput.targetUrl, bankToken, accountConsentId, userInput.clientId)
             else null
 
-        // Получаем accountNumber для выпуска карты
         val accountNumber: String? =
             if (!bankToken.isNullOrBlank() && !accountConsentId.isNullOrBlank() && accountId != null)
                 getFirstAccountNumber(userInput.targetUrl, bankToken, accountConsentId, userInput.clientId, accountId)
@@ -204,7 +203,6 @@ class ApiScanService(
 
     // ----------------------------------------------------------------------
     // КАРТЫ
-    // ----------------------------------------------------------------------
     private fun handleCardPaths(
         pathTemplate: String,
         userInput: UserInput,
@@ -215,33 +213,47 @@ class ApiScanService(
         bankToken: String? = null
     ): String {
         val base = userInput.targetUrl
+
         return when {
             pathTemplate == "/cards" -> {
-                var url = "$base/cards?client_id=${userInput.clientId}-1"
-                if (!accountNumber.isNullOrBlank()) url += "&account_id=$accountNumber"
-
-                if (!accountNumber.isNullOrBlank() && !accountConsentId.isNullOrBlank() && !bankToken.isNullOrBlank()) {
-                    runBlocking {
-                        val newCardId = issueNewCard(
-                            bankBaseUrl = base,
-                            bankToken = bankToken,
-                            consentId = accountConsentId,
-                            requestingBank = userInput.clientId,
-                            clientId = userInput.clientId,
-                            accountNumber = accountNumber
-                        )
-                        if (!newCardId.isNullOrBlank()) {
-                            println("New card issued: $newCardId")
-                        }
-                    }
+                if (accountNumber.isNullOrBlank() || accountConsentId.isNullOrBlank() || bankToken.isNullOrBlank()) {
+                    return "$base/cards?client_id=${userInput.clientId}-1"
                 }
 
-                url
+                val existingCardId = runBlocking {
+                    try {
+                        val resp = client.get("$base/cards?client_id=${userInput.clientId}-1&account_id=$accountNumber") {
+                            header("Authorization", "Bearer $bankToken")
+                            header("X-Consent-Id", accountConsentId)
+                            header("X-Requesting-Bank", userInput.clientId)
+                            header("Accept", "application/json")
+                        }
+                        if (resp.status.value != 200) null
+                        else mapper.readTree(resp.bodyAsText()).path("data").path("cards").firstOrNull()?.path("cardId")?.asText()
+                    } catch (_: Exception) { null }
+                }
+
+                if (!existingCardId.isNullOrBlank()) {
+                    return buildUrlFromPath(base, pathTemplate, combinedParams)
+                }
+
+                runBlocking {
+                    issueNewCard(
+                        bankBaseUrl = base,
+                        bankToken = bankToken,
+                        consentId = accountConsentId,
+                        requestingBank = userInput.clientId,
+                        clientId = userInput.clientId,
+                        accountNumber = accountNumber
+                    )
+                }
+
+                buildUrlFromPath(base, pathTemplate, combinedParams)
             }
 
             pathTemplate.contains("{card_id}") -> {
-                val id = cardId ?: "card-sample-id"
-                buildUrlFromPath(base, pathTemplate.replace("{card_id}", id), combinedParams)
+                val realCardId = cardId ?: "card-sample-id"
+                buildUrlFromPath(base, pathTemplate.replace("{card_id}", realCardId), combinedParams)
             }
 
             else -> buildUrlFromPath(base, pathTemplate, combinedParams)
@@ -264,11 +276,8 @@ class ApiScanService(
                 header("X-Requesting-Bank", clientId)
                 header("Accept", "application/json")
             }
-            if (response.status.value != 200) return null
-            val json = mapper.readTree(response.bodyAsText())
-            val accountsNode = json.path("data").path("account")
-            if (!accountsNode.isArray || accountsNode.isEmpty) return null
-            accountsNode.first().path("accountNumber").asText(null)
+            val accountsNode = mapper.readTree(response.bodyAsText()).path("data").path("account")
+            accountsNode.firstOrNull()?.path("accountNumber")?.asText()
         } catch (_: Exception) { null }
     }
 
@@ -277,24 +286,21 @@ class ApiScanService(
         bankToken: String,
         consentId: String,
         clientId: String,
-        accountId: String?
+        accountNumber: String?
     ): String? {
-        if (accountId.isNullOrBlank()) return null
-        val url = "$bankBaseUrl/cards?client_id=${clientId}-1&account_id=$accountId"
-        return try {
-            val response = client.request(url) {
-                method = HttpMethod.Get
+        if (accountNumber.isNullOrBlank()) return null
+
+        val getUrl = "$bankBaseUrl/cards?client_id=${clientId}-1&account_id=$accountNumber"
+        try {
+            val getResp = client.get(getUrl) {
                 header("Authorization", "Bearer $bankToken")
                 header("X-Consent-Id", consentId)
                 header("X-Requesting-Bank", clientId)
                 header("Accept", "application/json")
             }
-            if (response.status.value != 200) return null
-            val json = mapper.readTree(response.bodyAsText())
-            val cardsNode = json.path("data").path("cards")
-            if (!cardsNode.isArray || cardsNode.isEmpty) return null
-            cardsNode.first().path("cardId").asText(null)
-        } catch (_: Exception) { null }
+            val cards = mapper.readTree(getResp.bodyAsText()).path("data").path("cards")
+            return cards.firstOrNull()?.path("cardId")?.asText() ?: issueNewCard(bankBaseUrl, bankToken, consentId, clientId, clientId, accountNumber)
+        } catch (_: Exception) { return null }
     }
 
     private suspend fun issueNewCard(
@@ -303,36 +309,25 @@ class ApiScanService(
         consentId: String,
         requestingBank: String,
         clientId: String,
-        accountNumber: String,
+        accountNumber: String?,
         cardName: String = "Visa Classic",
         cardType: String = "debit"
     ): String? {
-        val url = "$bankBaseUrl/cards?client_id=${clientId}-1&account_id=$accountNumber"
+        if (accountNumber.isNullOrBlank()) return null
+
+        val url = "$bankBaseUrl/cards?client_id=$clientId-1"
         return try {
-            val response = client.post(url) {
+            val resp = client.post(url) {
                 contentType(ContentType.Application.Json)
                 header("Authorization", "Bearer $bankToken")
                 header("X-Requesting-Bank", requestingBank)
                 header("X-Consent-Id", consentId)
-                setBody(
-                    """
-                    {
-                      "account_number": "$accountNumber",
-                      "card_name": "$cardName",
-                      "card_type": "$cardType"
-                    }
-                    """.trimIndent()
-                )
+                setBody(mapOf("account_number" to accountNumber, "card_name" to cardName, "card_type" to cardType))
             }
-            if (response.status.value != 200 && response.status.value != 201) return null
-            val json = mapper.readTree(response.bodyAsText())
-            json.path("cardId").asText(null)
+            mapper.readTree(resp.bodyAsText()).path("cardId").asText(null)
         } catch (_: Exception) { null }
     }
 
-    // ----------------------------------------------------------------------
-    // Общие функции и проверки
-    // ----------------------------------------------------------------------
     private fun emptyReport(userInput: UserInput, issues: List<Issue>) =
         ScanReport(
             specUrl = userInput.specUrl,
@@ -412,11 +407,8 @@ class ApiScanService(
                 header("X-Requesting-Bank", clientId)
                 header("Accept", "application/json")
             }
-            if (response.status.value != 200) return null
-            val json = mapper.readTree(response.bodyAsText())
-            val accountsNode = json.path("data").path("account")
-            if (!accountsNode.isArray || accountsNode.isEmpty) return null
-            accountsNode.first().path("accountId").asText(null)
+            val accountsNode = mapper.readTree(response.bodyAsText()).path("data").path("account")
+            accountsNode.firstOrNull()?.path("accountId")?.asText()
         } catch (_: Exception) { null }
     }
 
@@ -441,8 +433,7 @@ class ApiScanService(
                 )
             }
             if (response.status.value != 200) return null
-            val json = mapper.readTree(response.bodyAsText())
-            json.path("consent_id").asText(null)
+            mapper.readTree(response.bodyAsText()).path("consent_id").asText(null)
         } catch (ex: Exception) {
             issues.add(Issue("PAYMENT_CONSENT_FAIL", Severity.HIGH, "Не удалось создать Payment Consent: ${ex.message}"))
             null
@@ -476,7 +467,6 @@ class ApiScanService(
                     """.trimIndent()
                 )
             }
-            if (response.status.value != 200) return null to null
             val json = mapper.readTree(response.bodyAsText())
             json.path("consent_id").asText(null) to json.path("request_id").asText(null)
         } catch (ex: Exception) {

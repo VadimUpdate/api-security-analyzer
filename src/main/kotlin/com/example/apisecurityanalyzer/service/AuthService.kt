@@ -29,8 +29,10 @@ class AuthService(
      * - добавлением Authorization: Bearer
      * - добавлением X-Requesting-Bank
      * - добавлением X-Consent-Id
-     * - добавлением client_id в GET/POST/PUT-запросах при addClientIdToGet = true
-     * - retry на 401 (получение банк-токена /auth/bank-token)
+     * - добавлением client_id в GET/POST/PUT/PATCH
+     * - retry на 401 (получение банк-токена)
+     *
+     * @param requireToken - если true, запретить выполнение запроса без токена/consentId
      */
     suspend fun performRequestWithAuth(
         method: HttpMethod,
@@ -40,9 +42,14 @@ class AuthService(
         clientSecret: String,
         consentId: String = "",
         addClientIdToGet: Boolean = true,
+        requireToken: Boolean = true,
         bodyBlock: (HttpRequestBuilder.() -> Unit)? = null,
         issues: MutableList<Issue>? = null
     ): HttpResponse {
+
+        if (requireToken && (authToken.isNullOrBlank() || consentId.isBlank())) {
+            throw IllegalStateException("Требуется токен/consentId для запроса $url")
+        }
 
         suspend fun execute(token: String?): HttpResponse {
             return client.request(url) {
@@ -55,7 +62,6 @@ class AuthService(
                 header("User-Agent", "ApiSecurityAnalyzer/1.0")
                 contentType(ContentType.Application.Json)
 
-                // Добавляем client_id в query для GET, POST, PUT, PATCH
                 if (addClientIdToGet && method in listOf(HttpMethod.Get, HttpMethod.Post, HttpMethod.Put, HttpMethod.Patch)) {
                     url { parameters.append("client_id", clientId) }
                 }
@@ -65,7 +71,6 @@ class AuthService(
         }
 
         val currentToken = authToken
-
         try {
             return execute(currentToken)
         } catch (e: ResponseException) {
@@ -160,12 +165,5 @@ class AuthService(
 
         return mapper.readTree(resp.bodyAsText()).path("consent_id").asText()
             ?: throw IllegalStateException("consent_id не найден в ответе")
-    }
-
-
-    private fun addIssue(list: MutableList<Issue>, issue: Issue) {
-        if (list.none { it.type == issue.type && it.path == issue.path && it.method == issue.method }) {
-            list.add(issue)
-        }
     }
 }

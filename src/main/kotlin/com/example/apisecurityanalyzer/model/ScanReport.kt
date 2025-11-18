@@ -10,7 +10,7 @@ data class ScanReport(
     val timestamp: Instant,
     val totalEndpoints: Int,
     val summary: Summary,
-    val issues: List<Issue>,
+    val issues: List<Issue>,                        // Только найденные уязвимости
     val accountIds: List<String> = emptyList(),
     val issuesByType: Map<String, Int> = emptyMap(),
     val uniqueEndpoints: Int = 0
@@ -31,8 +31,8 @@ data class Endpoint(
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class EndpointMethod(
-    val method: String,                   // GET, POST, PUT, PATCH, DELETE
-    val description: String? = null,      // описание из OpenAPI
+    val method: String,
+    val description: String? = null,
     val issues: List<Issue> = emptyList(),
     val samples: List<RequestSample> = emptyList()
 )
@@ -44,7 +44,7 @@ enum class Severity {
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class RequestSample(
     val url: String,
-    val requestBody: Any? = null,        // Может быть Map или объект
+    val requestBody: Any? = null,
     val responseSample: ResponseSample? = null
 )
 
@@ -52,4 +52,13 @@ data class RequestSample(
 data class ResponseSample(
     val status: Int,
     val body: Any? = null
+)
+
+data class Issue(
+    val type: String,
+    val severity: Severity = Severity.MEDIUM,
+    val description: String,
+    val url: String? = null,
+    val method: String? = null,
+    val evidence: String? = null
 )

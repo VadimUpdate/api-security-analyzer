@@ -1,15 +1,9 @@
-package com.example.apianalyzer.plugin
+package com.example.apianalyzer.util
 
 import com.example.apianalyzer.model.Issue
-import com.example.apianalyzer.model.ScanReport
+import com.example.apianalyzer.model.Severity
 import io.ktor.client.statement.*
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.buildJsonObject
 
-/**
- * Безопасное получение текста из HttpResponse
- */
 suspend fun safeBodyText(response: HttpResponse): String {
     return try {
         response.bodyAsText()
@@ -18,17 +12,12 @@ suspend fun safeBodyText(response: HttpResponse): String {
     }
 }
 
-/**
- * Генерация примера JSON по схеме (stub, всегда возвращает пустой объект)
- */
-fun buildSampleJsonFromSchema(schema: Any?): JsonObject {
-    // Можно расширить для генерации по реальной OpenAPI схеме
-    return buildJsonObject { }
+fun addIfNotDuplicate(list: MutableList<Issue>, issue: Issue) {
+    if (list.none { it.type == issue.type && it.url == issue.url && it.method == issue.method }) {
+        list += issue
+    }
 }
 
-/**
- * Генерация payload-ов для фуззинга (stub, возвращает базовый список)
- */
 fun generateFuzzPayloads(): List<String> {
     return listOf(
         "' OR '1'='1",
@@ -36,17 +25,3 @@ fun generateFuzzPayloads(): List<String> {
         "../../etc/passwd"
     )
 }
-
-/**
- * Добавление Issue в список, если такого ещё нет
- */
-fun addIfNotDuplicate(list: MutableList<Issue>, issue: Issue) {
-    if (list.none { it.type == issue.type && it.path == issue.path && it.method == issue.method }) {
-        list += issue
-    }
-}
-
-/**
- * JSON форматтер для сериализации/десериализации
- */
-val jsonFormatter = Json { prettyPrint = true; encodeDefaults = true }

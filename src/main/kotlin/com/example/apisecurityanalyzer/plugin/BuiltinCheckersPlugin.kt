@@ -23,7 +23,10 @@ class BuiltinCheckersPlugin(
 
     override val name: String = "BuiltinCheckers"
 
+    /** Используемый для всех проверок consentId */
     var consentId: String? = null
+
+    /** Полученный токен банка */
     var bankToken: String? = null
 
     val fuzzer: FuzzerService by lazy {
@@ -36,7 +39,10 @@ class BuiltinCheckersPlugin(
             politenessDelayMs = politenessDelayMs,
             maxConcurrency = maxConcurrency,
             maxPayloadsPerEndpoint = maxPayloadsPerEndpoint
-        )
+        ).apply {
+            this.consentId = this@BuiltinCheckersPlugin.consentId ?: ""
+            this.bankToken = this@BuiltinCheckersPlugin.bankToken ?: ""
+        }
     }
 
     private fun methodFromString(m: String): HttpMethod = when (m.uppercase()) {
@@ -56,24 +62,6 @@ class BuiltinCheckersPlugin(
         return sensitive.any { body.contains(it, ignoreCase = true) }
     }
 
-    private suspend fun ensureConsent(issues: MutableList<Issue>) {
-        if (consentId != null && !bankToken.isNullOrBlank()) return
-
-        bankToken = authService.getBankToken(
-            bankBaseUrl = bankBaseUrl,
-            clientId = clientId,
-            clientSecret = clientSecret,
-            issues = issues
-        )
-
-        consentId = authService.createConsent(
-            bankBaseUrl = bankBaseUrl,
-            clientId = clientId,
-            clientSecret = clientSecret,
-            issues = issues
-        )
-    }
-
     override suspend fun runCheck(
         url: String,
         method: String,
@@ -81,67 +69,135 @@ class BuiltinCheckersPlugin(
         issues: MutableList<Issue>
     ) {
         try {
-            ensureConsent(issues)
+            val resp: HttpResponse? = try {
+                authService.performRequestWithAuth(
+                    methodFromString(method),
+                    url,
+                    bankBaseUrl,
+                    clientId,
+                    clientSecret,
+                    consentId ?: "",
+                    addClientIdToGet = false,
+                    requireToken = true,
+                    bodyBlock = { },
+                    issues = issues
+                )
+            } catch (e: IllegalStateException) {
+                // пропускаем запросы без токена/consentId
+                if (e.message.orEmpty().contains("Требуется токен")) return
+                else throw e
+            }
 
-            val resp: HttpResponse = authService.performRequestWithAuth(
-                method = methodFromString(method),
-                url = url,
-                bankBaseUrl = bankBaseUrl,
-                clientId = clientId,
-                clientSecret = clientSecret,
-                consentId = consentId!!,
-                addClientIdToGet = false, // Отключено полностью
-                bodyBlock = { },
-                issues = issues
-            )
+            if (resp == null) return
 
             val code = resp.status.value
-
             if (code !in 200..399) {
                 issues.add(
                     Issue(
                         type = "ENDPOINT_ERROR_STATUS",
                         severity = if (code >= 500) Severity.HIGH else Severity.LOW,
                         description = "$method $url вернул HTTP $code",
-                        path = url,
+                        url = url,
                         method = method
                     )
                 )
             }
 
-            val body = resp.bodyAsText()
+            val body = try { resp.bodyAsText() } catch (_: Throwable) { "" }
             if (containsSensitiveField(body)) {
                 issues.add(
                     Issue(
                         type = "EXCESSIVE_DATA_EXPOSURE",
                         severity = Severity.HIGH,
                         description = "Ответ содержит чувствительные поля",
-                        path = url,
+                        url = url,
                         method = method
                     )
                 )
             }
 
+            // Fuzzing
             if (enableFuzzing) {
                 fuzzer.bankToken = bankToken ?: ""
                 fuzzer.consentId = consentId ?: ""
                 fuzzer.fuzzEndpoint(
-                    url = url,
-                    method = methodFromString(method),
-                    issues = issues
+                    url,
+                    methodFromString(method),
+                    issues
                 )
             }
 
+            // Rate limiting check
+            checkRateLimiting(url, methodFromString(method), issues)
+
+            // Quick heuristics для GET/HEAD: BOLA, IDOR, Broken Auth
+            if (method.equals("GET", true) || method.equals("HEAD", true)) {
+                if (Regex("/\\d+").containsMatchIn(url) || url.endsWith("/1")) {
+                    issues.add(
+                        Issue(
+                            type = "BOLA",
+                            severity = Severity.MEDIUM,
+                            description = "Публичный доступ к ресурсу с идентификатором — потенциальная BOLA, HTTP $code",
+                            url = url,
+                            method = method
+                        )
+                    )
+                }
+            }
+
         } catch (e: Exception) {
-            issues.add(
-                Issue(
-                    type = "NETWORK_ERROR",
-                    severity = Severity.MEDIUM,
-                    description = "Ошибка сети при $method $url: ${e.message}",
-                    path = url,
-                    method = method
+            // добавляем только реальные сетевые ошибки
+            if (!e.message.orEmpty().contains("Требуется токен")) {
+                issues.add(
+                    Issue(
+                        type = "NETWORK_ERROR",
+                        severity = Severity.MEDIUM,
+                        description = "Ошибка сети при $method $url: ${e.message}",
+                        url = url,
+                        method = method
+                    )
                 )
-            )
+            }
         }
+    }
+
+    private suspend fun checkRateLimiting(url: String, method: HttpMethod, issues: MutableList<Issue>) {
+        try {
+            var triggered = false
+            repeat(5) {
+                val resp: HttpResponse? = try {
+                    authService.performRequestWithAuth(
+                        method,
+                        url,
+                        bankBaseUrl,
+                        clientId,
+                        clientSecret,
+                        consentId ?: "",
+                        addClientIdToGet = false,
+                        requireToken = true,
+                        bodyBlock = { },
+                        issues = issues
+                    )
+                } catch (e: IllegalStateException) {
+                    if (e.message.orEmpty().contains("Требуется токен")) return
+                    else throw e
+                }
+
+                if (resp == null) return
+
+                if (resp.status.value == 429) triggered = true
+            }
+            if (!triggered) {
+                issues.add(
+                    Issue(
+                        type = "RATE_LIMITING",
+                        severity = Severity.MEDIUM,
+                        description = "Эндпоинт $url не защищен rate limiting",
+                        url = url,
+                        method = method.value
+                    )
+                )
+            }
+        } catch (_: Exception) { }
     }
 }

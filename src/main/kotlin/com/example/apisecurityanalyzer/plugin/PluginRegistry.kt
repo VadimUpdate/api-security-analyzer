@@ -7,7 +7,6 @@ import kotlin.reflect.full.callSuspend
 
 /**
  * Универсальный реестр плагинов.
- * Поддерживает регистрацию любых плагинов, у которых есть метод runCheck().
  */
 class PluginRegistry {
 
@@ -19,24 +18,6 @@ class PluginRegistry {
 
     /**
      * Запуск всех плагинов.
-     * Плагин должен иметь метод:
-     *
-     * suspend fun runCheck(
-     *      url: String,
-     *      method: String,
-     *      operation: Operation,
-     *      issues: MutableList<Issue>
-     * )
-     *
-     * или расширенную версию (если поддерживает fuzzing):
-     *
-     * suspend fun runCheck(
-     *      url: String,
-     *      method: String,
-     *      operation: Operation,
-     *      issues: MutableList<Issue>,
-     *      enableFuzzing: Boolean
-     * )
      */
     @Suppress("UNCHECKED_CAST")
     suspend fun runAll(
@@ -51,6 +32,7 @@ class PluginRegistry {
                 val methodRef = plugin::class.members.find { it.name == "runCheck" } ?: continue
 
                 when (methodRef.parameters.size) {
+
                     // plugin.runCheck(url, method, operation, issues)
                     5 -> methodRef.callSuspend(plugin, url, method, operation, issues)
 
@@ -61,16 +43,19 @@ class PluginRegistry {
                         issues += Issue(
                             type = "PLUGIN_SIGNATURE_ERROR",
                             severity = Severity.LOW,
-                            description = "Некорректная сигнатура runCheck у ${plugin.javaClass.simpleName}"
+                            description = "Некорректная сигнатура runCheck у ${plugin.javaClass.simpleName}",
+                            url = url,
+                            method = method
                         )
                     }
                 }
+
             } catch (e: Exception) {
                 issues += Issue(
                     type = "PLUGIN_ERROR",
                     severity = Severity.LOW,
                     description = "Ошибка в ${plugin.javaClass.simpleName}: ${e.message}",
-                    path = url,
+                    url = url,
                     method = method
                 )
             }
