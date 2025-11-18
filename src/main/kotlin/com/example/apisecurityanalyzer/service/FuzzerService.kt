@@ -22,18 +22,77 @@ class FuzzerService(
     var bankToken: String = ""
     var consentId: String = ""
 
-    private val basePayloads = listOf(
-        "' OR '1'='1",
-        "\" OR \"1\"=\"1",
-        "' OR 1=1 --",
-        "<script>alert(1)</script>",
-        "\"><img src=x onerror=alert(1)>",
-        "../etc/passwd",
-        "..\\windows\\system32\\drivers\\etc\\hosts",
-        "`; ls -la`",
-        "; echo vuln",
-        "\${sleep 1}",
-        "\${reboot}"
+    data class BaselineRequest(
+        val url: String,
+        val method: HttpMethod,
+        val headers: Map<String, String>,
+        val body: String?
+    )
+
+    private val attackCategories = listOf(
+        "SQL Injection",
+        "XSS",
+        "Path Traversal",
+        "Command Injection",
+        "Mass Assignment",
+        "SSRF",
+        "RCE-Like",
+        "LDAP Injection",
+        "NoSQL Injection",
+        "Broken Input Validation"
+    )
+
+    private val payloadBank: Map<String, List<String>> = mapOf(
+        "SQL Injection" to listOf(
+            "' OR '1'='1",
+            "\" OR \"1\"=\"1",
+            "' OR 1=1 --",
+            "1 OR 1=1",
+            "' UNION SELECT NULL--"
+        ),
+        "XSS" to listOf(
+            "<script>alert(1)</script>",
+            "\"><img src=x onerror=alert(1)>",
+            "<img src=x onerror=alert(document.cookie)>"
+        ),
+        "Path Traversal" to listOf(
+            "../../etc/passwd",
+            "/../../../../var/log",
+            "..\\..\\windows\\system.ini"
+        ),
+        "Command Injection" to listOf(
+            "`; ls -la`",
+            "value && whoami",
+            "test; cat /etc/passwd"
+        ),
+        "Mass Assignment" to listOf(
+            "{\"role\":\"admin\"}",
+            "{\"is_superuser\":true}",
+            "{\"balance\":999999999}"
+        ),
+        "SSRF" to listOf(
+            "http://127.0.0.1",
+            "http://169.254.169.254/latest/meta-data/",
+            "http://localhost:8080/admin"
+        ),
+        "RCE-Like" to listOf(
+            "\${7*7}",
+            "#{7*7}",
+            "$(touch /tmp/rce)"
+        ),
+        "LDAP Injection" to listOf(
+            "*)(uid=*))(|(uid=*",
+            "(|(objectClass=*))"
+        ),
+        "NoSQL Injection" to listOf(
+            "{ \"\$ne\": null }",
+            "{ \"\$gt\": \"\" }"
+        ),
+        "Broken Input Validation" to listOf(
+            "A".repeat(4000),
+            "🔥💣💥",
+            "😀😀😀😀😀😀😀😀"
+        )
     )
 
     private val evidenceIndicators = listOf(
@@ -62,24 +121,9 @@ class FuzzerService(
     ) {
         if (!enabled || url.endsWith("/auth/bank-token")) return
 
-        if (bankToken.isBlank() || consentId.isBlank()) {
-            bankToken = try {
-                authService.getBankToken(bankBaseUrl, clientId, clientSecret, issues)
-            } catch (_: Throwable) {
-                println("[Fuzzer] ERROR: failed to get bank token")
-                return
-            }
-            consentId = try {
-                authService.createConsent(bankBaseUrl, clientId, clientSecret, issues)
-            } catch (_: Throwable) {
-                println("[Fuzzer] ERROR: failed to create consent")
-                return
-            }
-        }
+        ensureAuth(issues)
 
-        println("[Fuzzer] Checking baseline request: $method $url")
-
-        val checkResp = try {
+        val baselineResp = try {
             authService.performRequestWithAuth(
                 method = method,
                 url = url,
@@ -91,49 +135,46 @@ class FuzzerService(
                 bodyBlock = {},
                 issues = issues
             )
-        } catch (e: Throwable) {
-            println("[Fuzzer] ERROR baseline request failed: ${e.message}")
+        } catch (_: Throwable) {
             return
         }
 
-        val baselineCode = checkResp.status.value
-        val baselineBody = safeBodyText(checkResp)
+        val baselineCode = baselineResp.status.value
+        val baselineBody = safeBodyText(baselineResp)
 
-        println("[Fuzzer] Baseline result $method $url → HTTP $baselineCode")
-        println("[Fuzzer] Baseline body preview:\n${baselineBody.take(500)}\n-----")
+        if (baselineCode != 200) return
 
-        if (baselineCode != 200) {
-            println("[Fuzzer] SKIP fuzzing — baseline is not 200 OK")
-            return
-        }
+        val baselineHeaders = baselineResp.headers.entries().associate { it.key to it.value.joinToString() }
 
-        println("[Fuzzer] Starting fuzzing: $method $url")
+        val baselineRequest = BaselineRequest(
+            url = url,
+            method = method,
+            headers = baselineHeaders,
+            body = baselineBody
+        )
 
-        val payloads = (allowedPayloads ?: basePayloads).take(maxPayloadsPerEndpoint)
+        val categoryPayloads = if (allowedPayloads != null)
+            allowedPayloads
+        else
+            attackCategories.flatMap { payloadBank[it]!! }
+                .take(maxPayloadsPerEndpoint)
+
         val sem = Semaphore(maxConcurrency)
         val jobs = mutableListOf<Deferred<Unit>>()
 
-        for (payload in payloads) {
+        for (payload in categoryPayloads) {
 
             jobs += scope.async {
                 sem.withPermit {
                     delay(politenessDelayMs)
-                    try {
-                        fuzzQuery(url, payload, issues)
-                    } catch (e: Throwable) {
-                        println("[Fuzzer] ERROR fuzzQuery: ${e.message}")
-                    }
+                    fuzzQuery(baselineRequest, payload, issues)
                 }
             }
 
             jobs += scope.async {
                 sem.withPermit {
                     delay(politenessDelayMs)
-                    try {
-                        fuzzHeader(url, method, payload, issues)
-                    } catch (e: Throwable) {
-                        println("[Fuzzer] ERROR fuzzHeader: ${e.message}")
-                    }
+                    fuzzHeader(baselineRequest, payload, issues)
                 }
             }
 
@@ -143,85 +184,119 @@ class FuzzerService(
                 jobs += scope.async {
                     sem.withPermit {
                         delay(politenessDelayMs)
-                        try {
-                            fuzzBody(url, method, payload, issues)
-                        } catch (e: Throwable) {
-                            println("[Fuzzer] ERROR fuzzBody: ${e.message}")
-                        }
+                        fuzzBody(baselineRequest, payload, issues)
                     }
                 }
             }
         }
 
         jobs.awaitAll()
-        println("[Fuzzer] Finished fuzzing: $method $url")
+    }
+
+    private suspend fun ensureAuth(issues: MutableList<Issue>) {
+        if (bankToken.isBlank() || consentId.isBlank()) {
+            bankToken = authService.getBankToken(bankBaseUrl, clientId, clientSecret, issues)
+            consentId = authService.createConsent(bankBaseUrl, clientId, clientSecret, issues)
+        }
     }
 
     private fun isStrictEndpoint(url: String): Boolean {
         val clean = url.lowercase()
-        return clean.contains("/accounts") && (
-                clean.endsWith("/accounts") ||
+        return clean.contains("/accounts") &&
+                (clean.endsWith("/accounts") ||
                         clean.contains("/close") ||
                         clean.contains("/transfer") ||
-                        clean.contains("/donate")
-                )
+                        clean.contains("/donate"))
     }
 
-    private suspend fun fuzzQuery(url: String, payload: String, issues: MutableList<Issue>) {
-        val fuzzUrl = if (url.contains("?")) "$url&fuzz=${encode(payload)}" else "$url?fuzz=${encode(payload)}"
+    private suspend fun fuzzQuery(
+        baseline: BaselineRequest,
+        payload: String,
+        issues: MutableList<Issue>
+    ) {
+        val category = detectAttackType(payload)
+
+        logFuzz("QUERY", category, baseline.method, baseline.url, payload)
+
+        val fuzzUrl =
+            if (baseline.url.contains("?"))
+                "${baseline.url}&fuzz=${encode(payload)}"
+            else
+                "${baseline.url}?fuzz=${encode(payload)}"
 
         val resp = authService.performRequestWithAuth(
-            method = HttpMethod.Get,
+            method = baseline.method,
             url = fuzzUrl,
             bankBaseUrl = bankBaseUrl,
             clientId = clientId,
             clientSecret = clientSecret,
             consentId = consentId,
             addClientIdToGet = false,
-            bodyBlock = {},
+            bodyBlock = { baseline.body?.let { setBody(it) } },
             issues = issues
         )
 
-        val body = safeBodyText(resp)
-        val code = resp.status.value
-
-        println("[Fuzzer] QUERY attack → $fuzzUrl | payload='$payload' | HTTP $code")
-        println("[Fuzzer] Response snippet:\n${body.take(500)}\n-----")
-
-        analyzeResponseForFuzz(fuzzUrl, "GET", payload, body, code, issues)
+        analyzeResponseForFuzz(
+            fuzzUrl,
+            baseline.method.value,
+            payload,
+            safeBodyText(resp),
+            resp.status.value,
+            category,
+            issues
+        )
     }
 
-    private suspend fun fuzzHeader(url: String, method: HttpMethod, payload: String, issues: MutableList<Issue>) {
+    private suspend fun fuzzHeader(
+        baseline: BaselineRequest,
+        payload: String,
+        issues: MutableList<Issue>
+    ) {
+        val category = detectAttackType(payload)
+
+        logFuzz("HEADER", category, baseline.method, baseline.url, payload)
+
         val resp = authService.performRequestWithAuth(
-            method = method,
-            url = url,
+            method = baseline.method,
+            url = baseline.url,
             bankBaseUrl = bankBaseUrl,
             clientId = clientId,
             clientSecret = clientSecret,
             consentId = consentId,
             addClientIdToGet = false,
             bodyBlock = {
-                header("X-Scanner-Fuzz", payload)
-                header("User-Agent", "ApiSecurityAnalyzer-Fuzzer/1.0")
+                baseline.body?.let { setBody(it) }
+                baseline.headers.forEach { (k, v) -> header(k, v) }
+                header("X-Fuzzer", payload)
             },
             issues = issues
         )
 
-        val body = safeBodyText(resp)
-        val code = resp.status.value
-
-        println("[Fuzzer] HEADER attack → $method $url | payload='$payload' | HTTP $code")
-        println("[Fuzzer] Response snippet:\n${body.take(500)}\n-----")
-
-        analyzeResponseForFuzz(url, method.value, payload, body, code, issues)
+        analyzeResponseForFuzz(
+            baseline.url,
+            baseline.method.value,
+            payload,
+            safeBodyText(resp),
+            resp.status.value,
+            category,
+            issues
+        )
     }
 
-    private suspend fun fuzzBody(url: String, method: HttpMethod, payload: String, issues: MutableList<Issue>) {
-        val jsonBody = """{"__fuzz":"${escapeJson(payload)}"}"""
+    private suspend fun fuzzBody(
+        baseline: BaselineRequest,
+        payload: String,
+        issues: MutableList<Issue>
+    ) {
+        val category = detectAttackType(payload)
+
+        logFuzz("BODY", category, baseline.method, baseline.url, payload)
+
+        val fuzzJson = """{"__fuzz":"${escapeJson(payload)}"}"""
 
         val resp = authService.performRequestWithAuth(
-            method = method,
-            url = url,
+            method = baseline.method,
+            url = baseline.url,
             bankBaseUrl = bankBaseUrl,
             clientId = clientId,
             clientSecret = clientSecret,
@@ -229,22 +304,48 @@ class FuzzerService(
             addClientIdToGet = false,
             bodyBlock = {
                 contentType(ContentType.Application.Json)
-                setBody(jsonBody)
-                header("X-Scanner-Fuzz", "true")
-                header("User-Agent", "ApiSecurityAnalyzer-Fuzzer/1.0")
+                setBody(fuzzJson)
+                header("X-Fuzzer", "true")
             },
             issues = issues
         )
 
-        val body = safeBodyText(resp)
-        val code = resp.status.value
+        analyzeResponseForFuzz(
+            baseline.url,
+            baseline.method.value,
+            payload,
+            safeBodyText(resp),
+            resp.status.value,
+            category,
+            issues
+        )
+    }
 
-        println("[Fuzzer] BODY attack → $method $url | payload='$payload'")
-        println("[Fuzzer] Body sent:\n$jsonBody")
-        println("[Fuzzer] HTTP $code")
-        println("[Fuzzer] Response snippet:\n${body.take(500)}\n-----")
+    private fun logFuzz(
+        phase: String,
+        category: String,
+        method: HttpMethod,
+        url: String,
+        payload: String
+    ) {
+        println(
+            "\n====== FUZZ ATTACK ======\n" +
+                    "Phase: $phase\n" +
+                    "Category: $category\n" +
+                    "URL: $url\n" +
+                    "Method: ${method.value}\n" +
+                    "Payload:\n$payload\n" +
+                    "=========================\n"
+        )
+    }
 
-        analyzeResponseForFuzz(url, method.value, payload, body, code, issues)
+    /** Исправлено: теперь ищем payload по contains(), а не equals */
+    private fun detectAttackType(payload: String): String {
+        for ((category, items) in payloadBank) {
+            if (items.any { payload.contains(it, ignoreCase = true) || it.contains(payload) })
+                return category
+        }
+        return "Unknown"
     }
 
     private fun analyzeResponseForFuzz(
@@ -253,83 +354,90 @@ class FuzzerService(
         payload: String,
         responseBody: String,
         statusCode: Int,
+        category: String,
         issues: MutableList<Issue>
     ) {
-        val found = evidenceIndicators.filter { responseBody.contains(it, ignoreCase = true) }
+        val evidence = evidenceIndicators.filter { responseBody.contains(it, ignoreCase = true) }
 
-        if (responseBody.contains("<script", ignoreCase = true) ||
-            responseBody.contains("alert(", ignoreCase = true)) {
+        if (evidence.isNotEmpty()) {
             addIfNotDuplicate(
                 issues,
                 Issue(
-                    type = "XSS",
-                    severity = Severity.HIGH,
-                    description = "Потенциальная XSS через $method $targetUrl — payload: ${short(payload)} — found: ${found.take(4)}",
-                    url = targetUrl,
-                    method = method
+                    category.uppercase(),
+                    Severity.HIGH,
+                    "Индикаторы: $evidence | payload=${short(payload)}",
+                    targetUrl,
+                    method
                 )
             )
         }
 
-        if (found.any { it.contains("sql", ignoreCase = true) || it.contains("syntax", ignoreCase = true) }) {
-            addIfNotDuplicate(
-                issues,
-                Issue(
-                    type = "INJECTION",
-                    severity = Severity.HIGH,
-                    description = "Потенциальная инъекция $method $targetUrl — payload: ${short(payload)} — indicators: ${found.take(5)} — HTTP $statusCode",
-                    url = targetUrl,
-                    method = method
-                )
-            )
-        }
+        if (category == "XSS" && responseBody.contains("<script", ignoreCase = true))
+            addIssue(issues, "XSS", Severity.HIGH, targetUrl, method, payload)
 
-        if (responseBody.contains("root:x:", ignoreCase = true) ||
-            responseBody.contains("passwd", ignoreCase = true)) {
-            addIfNotDuplicate(
-                issues,
-                Issue(
-                    type = "PATH_TRAVERSAL",
-                    severity = Severity.HIGH,
-                    description = "Потенциальная утечка файлов $method $targetUrl — payload: ${short(payload)}",
-                    url = targetUrl,
-                    method = method
-                )
-            )
-        }
+        if (category == "SQL Injection" && responseBody.contains("sql", ignoreCase = true))
+            addIssue(issues, "SQLI", Severity.HIGH, targetUrl, method, payload)
 
-        if (statusCode >= 500) {
-            addIfNotDuplicate(
+        if (category == "Path Traversal" &&
+            (responseBody.contains("root:x:") || responseBody.contains("passwd"))
+        )
+            addIssue(issues, "PATH_TRAVERSAL", Severity.HIGH, targetUrl, method, payload)
+
+        if (category == "SSRF" && statusCode in listOf(500, 502, 503))
+            addIssue(issues, "SSRF", Severity.MEDIUM, targetUrl, method, payload)
+
+        if (statusCode >= 500)
+            addIssue(
                 issues,
-                Issue(
-                    type = "SERVER_ERROR_ON_FUZZ",
-                    severity = Severity.MEDIUM,
-                    description = "Сервер возвращает $statusCode после payload $method $targetUrl — payload: ${short(payload)}",
-                    url = targetUrl,
-                    method = method
-                )
+                "SERVER_ERROR_ON_FUZZ",
+                Severity.MEDIUM,
+                targetUrl,
+                method,
+                "HTTP $statusCode after fuzz"
             )
-        }
     }
 
-    private fun short(s: String, limit: Int = 120) =
+    private fun addIssue(
+        issues: MutableList<Issue>,
+        type: String,
+        severity: Severity,
+        url: String,
+        method: String,
+        payload: String
+    ) {
+        addIfNotDuplicate(
+            issues,
+            Issue(
+                type,
+                severity,
+                "Payload=${short(payload)}",
+                url,
+                method
+            )
+        )
+    }
+
+    private fun short(s: String, limit: Int = 120): String =
         if (s.length <= limit) s else s.take(limit) + "..."
 
-    private fun encode(s: String) =
+    private fun encode(s: String): String =
         java.net.URLEncoder.encode(s, "utf-8")
 
-    private fun escapeJson(s: String) =
+    private fun escapeJson(s: String): String =
         s.replace("\"", "\\\"")
 
     private fun addIfNotDuplicate(list: MutableList<Issue>, issue: Issue) {
-        if (list.none { it.type == issue.type && it.url == issue.url && it.method == issue.method })
+        if (list.none { it.type == issue.type && it.url == issue.url && it.method == issue.method }) {
             list += issue
+        }
     }
 
     private fun safeBodyText(resp: HttpResponse): String =
         try {
             runBlocking { resp.bodyAsText() }
-        } catch (_: Throwable) { "" }
+        } catch (_: Throwable) {
+            ""
+        }
 
     private class Semaphore(private val permits: Int) {
         private val mutex = Mutex()
@@ -338,12 +446,14 @@ class FuzzerService(
         suspend fun <T> withPermit(block: suspend () -> T): T {
             while (true) {
                 var allowed = false
+
                 mutex.withLock {
                     if (available > 0) {
                         available--
                         allowed = true
                     }
                 }
+
                 if (allowed) {
                     return try {
                         block()
