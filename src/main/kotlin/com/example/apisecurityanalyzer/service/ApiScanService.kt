@@ -15,6 +15,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import org.springframework.stereotype.Service
+import java.net.URI
 import java.time.Instant
 
 @Service
@@ -59,15 +60,9 @@ class ApiScanService(
             consentService.createAccountConsent(userInput, bankToken, issues)
         } else null
 
-        if (accountConsentId.isNullOrBlank() && !bankToken.isNullOrBlank())
-            issues.add(Issue("CONSENT_FAIL", Severity.HIGH, "Account consent не получен или не одобрен"))
-
         val paymentConsentId = if (!bankToken.isNullOrBlank()) {
             consentService.createPaymentConsent(userInput, bankToken, issues)
         } else null
-
-        if (paymentConsentId.isNullOrBlank() && !bankToken.isNullOrBlank())
-            issues.add(Issue("PAYMENT_CONSENT_FAIL", Severity.HIGH, "Payment consent не получен или не одобрен"))
 
         var productRequestId: String? = null
         val productConsentId = if (!bankToken.isNullOrBlank()) {
@@ -76,10 +71,7 @@ class ApiScanService(
             pair.first
         } else null
 
-        if (productConsentId.isNullOrBlank() && !bankToken.isNullOrBlank())
-            issues.add(Issue("PRODUCT_CONSENT_FAIL", Severity.HIGH, "Product agreement consent не получен или не одобрен"))
-
-        // === Новый BuiltinCheckersPlugin с полным набором зависимостей ===
+        // Передаем ClientProvider, а не client
         val builtinPlugin = BuiltinCheckersPlugin(clientProvider, consentService, userInput, bankToken ?: "")
         val pluginRegistry = PluginRegistry().apply { register(builtinPlugin) }
 
@@ -119,9 +111,6 @@ class ApiScanService(
                         pathTemplate.startsWith("/cards") ->
                             cardService.handleCardPaths(pathTemplate, userInput, combinedParams, accountNumber, cardId, accountConsentId, bankToken)
 
-                        pathTemplate == "/accounts" && method == "POST" ->
-                            buildUrlFromPath(userInput.targetUrl, pathTemplate, combinedParams)
-
                         pathTemplate.contains("{consent_id}") && pathTemplate.startsWith("/payment-consents") && paymentConsentId != null ->
                             buildUrlFromPath(userInput.targetUrl, pathTemplate.replace("{consent_id}", paymentConsentId), combinedParams)
 
@@ -131,14 +120,11 @@ class ApiScanService(
                         pathTemplate.contains("{id}") && pathTemplate.startsWith("/product-agreements") && productRequestId != null ->
                             buildUrlFromPath(userInput.targetUrl, pathTemplate.replace("{id}", productRequestId), combinedParams)
 
-                        pathTemplate == "/product-agreements" -> {
-                            val baseUrl = buildUrlFromPath(userInput.targetUrl, pathTemplate, combinedParams)
-                            "$baseUrl?client_id=${userInput.clientId}-1"
-                        }
+                        pathTemplate == "/product-agreements" ->
+                            "${buildUrlFromPath(userInput.targetUrl, pathTemplate, combinedParams)}?client_id=${userInput.clientId}-1"
 
-                        else ->
-                            buildUrlFromPath(userInput.targetUrl, pathTemplate, combinedParams)
-                                .removeQueryParam("client_id")
+                        else -> buildUrlFromPath(userInput.targetUrl, pathTemplate, combinedParams)
+                            .removeQueryParam("client_id")
                     }
 
                     jobs += async {
@@ -147,9 +133,16 @@ class ApiScanService(
                             try {
                                 pluginRegistry.runAll(url, method, operation, issues)
                                 if (!bankToken.isNullOrBlank()) {
-                                    val consentToUse = consentService.selectConsentForPath(url, paymentConsentId, productConsentId, accountConsentId)
+                                    val consentToUse = consentService.selectConsentForPath(
+                                        url,
+                                        paymentConsentId,
+                                        productConsentId,
+                                        accountConsentId
+                                    )
                                     if (!consentToUse.isNullOrBlank())
-                                        consentService.performEnhancedChecks(url, method, issues, bankToken, consentToUse, userInput, productRequestId)
+                                        consentService.performEnhancedChecks(
+                                            url, method, issues, bankToken, consentToUse, userInput, productRequestId
+                                        )
                                 }
                             } catch (_: Exception) {}
                         }
@@ -161,7 +154,7 @@ class ApiScanService(
 
         runGlobalChecks(client, userInput.targetUrl, issues)
 
-        ScanReport(
+        return@runBlocking ScanReport(
             specUrl = userInput.specUrl,
             targetUrl = userInput.targetUrl,
             timestamp = Instant.now(),
@@ -187,3 +180,4 @@ class ApiScanService(
             accountIds = emptyList()
         )
 }
+

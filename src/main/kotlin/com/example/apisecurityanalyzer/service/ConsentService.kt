@@ -2,30 +2,68 @@ package com.example.apianalyzer.service
 
 import com.example.apianalyzer.model.*
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import io.ktor.client.call.*
 import io.ktor.client.request.*
-import io.ktor.client.request.setBody
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.coroutines.runBlocking
 import org.springframework.stereotype.Service
+import io.swagger.v3.oas.models.Operation
+import java.net.URI
 
 @Service
-class ConsentService(private val clientProvider: ClientProvider, private val authService: AuthService) {
+class ConsentService(
+    private val clientProvider: ClientProvider,
+    private val authService: AuthService
+) {
     private val client get() = clientProvider.client
     private val mapper = jacksonObjectMapper()
 
-    suspend fun createAccountConsent(userInput: UserInput, bankToken: String, issues: MutableList<Issue>): String? {
-        return try { authService.createConsent(userInput.targetUrl, userInput.clientId, userInput.clientSecret, issues) } catch (_: Exception) { null }
+    /**
+     * Полный контекст запроса для плагинов (ЧИСТЫЙ ДО АТАК).
+     */
+    data class RequestContext(
+        val url: String,
+        val method: String,
+        val headers: MutableMap<String, String>,
+        val query: MutableMap<String, String>,
+        val body: String?
+    )
+
+    /**
+     * Создание account-consent
+     */
+    suspend fun createAccountConsent(
+        userInput: UserInput,
+        bankToken: String,
+        issues: MutableList<Issue>
+    ): String? {
+        return try {
+            authService.createConsent(
+                userInput.targetUrl,
+                userInput.clientId,
+                userInput.clientSecret,
+                issues
+            )
+        } catch (_: Exception) {
+            null
+        }
     }
 
-    suspend fun createPaymentConsent(userInput: UserInput, bankToken: String, issues: MutableList<Issue>): String? {
+    /**
+     * Создание payment-consent
+     */
+    suspend fun createPaymentConsent(
+        userInput: UserInput,
+        bankToken: String,
+        issues: MutableList<Issue>
+    ): String? {
         val url = "${userInput.targetUrl}/payment-consents/request"
         return try {
             val response = client.post(url) {
                 contentType(ContentType.Application.Json)
                 header("Authorization", "Bearer $bankToken")
                 header("X-Requesting-Bank", userInput.requestingBank)
+
                 setBody(
                     """
                     {
@@ -39,21 +77,36 @@ class ConsentService(private val clientProvider: ClientProvider, private val aut
                     """.trimIndent()
                 )
             }
+
             if (response.status.value != 200) return null
             mapper.readTree(response.bodyAsText()).path("consent_id").asText(null)
+
         } catch (ex: Exception) {
-            issues.add(Issue("PAYMENT_CONSENT_FAIL", Severity.HIGH, "Не удалось создать Payment Consent: ${ex.message}"))
+            issues.add(
+                Issue("PAYMENT_CONSENT_FAIL", Severity.HIGH,
+                    "Не удалось создать Payment Consent: ${ex.message}")
+            )
             null
         }
     }
 
-    suspend fun createProductAgreementConsent(userInput: UserInput, bankToken: String, issues: MutableList<Issue>): Pair<String?, String?> {
+    /**
+     * Создание product-agreement-consent
+     */
+    suspend fun createProductAgreementConsent(
+        userInput: UserInput,
+        bankToken: String,
+        issues: MutableList<Issue>
+    ): Pair<String?, String?> {
+
         val url = "${userInput.targetUrl}/product-agreement-consents/request?client_id=${userInput.clientId}-1"
+
         return try {
             val response = client.post(url) {
                 contentType(ContentType.Application.Json)
                 header("Authorization", "Bearer $bankToken")
                 header("X-Requesting-Bank", userInput.requestingBank)
+
                 setBody(
                     """
                     {
@@ -70,14 +123,100 @@ class ConsentService(private val clientProvider: ClientProvider, private val aut
                     """.trimIndent()
                 )
             }
+
             val json = mapper.readTree(response.bodyAsText())
             json.path("consent_id").asText(null) to json.path("request_id").asText(null)
+
         } catch (ex: Exception) {
-            issues.add(Issue("PRODUCT_CONSENT_FAIL", Severity.HIGH, "Не удалось создать Product Agreement Consent: ${ex.message}"))
+            issues.add(
+                Issue("PRODUCT_CONSENT_FAIL", Severity.HIGH,
+                    "Не удалось создать Product Agreement Consent: ${ex.message}")
+            )
             null to null
         }
     }
 
+    /**
+     * Создание ЧИСТОГО RequestContext
+     */
+    fun buildRequestContext(
+        fullUrl: String,
+        method: String,
+        operation: Operation,
+        userInput: UserInput,
+        bankToken: String,
+        consentId: String?
+    ): RequestContext {
+
+        val headers = mutableMapOf<String, String>()
+        val query = mutableMapOf<String, String>()
+        var body: String? = null
+
+        headers["Authorization"] = "Bearer $bankToken"
+
+        val consentHeader = when {
+            fullUrl.contains("/product-agreements") -> "X-Product-Agreement-Consent-Id"
+            fullUrl.contains("/cards") -> "X-Consent-Id"
+            else -> "X-Consent-Id"
+        }
+
+        if (consentId != null) {
+            headers[consentHeader] = consentId
+        }
+
+        headers["X-Requesting-Bank"] =
+            if (fullUrl.contains("/cards")) userInput.clientId else userInput.requestingBank
+
+        operation.parameters?.forEach { p ->
+            if (p.`in` == "query") {
+                query[p.name] = "test"
+            }
+        }
+
+        if (operation.requestBody != null) {
+            body = "{}"
+        }
+
+        return RequestContext(
+            url = fullUrl,
+            method = method,
+            headers = headers,
+            query = query,
+            body = body
+        )
+    }
+
+    /**
+     * Выполнение запроса по RequestContext
+     */
+    suspend fun executeContext(ctx: RequestContext): HttpResponse? {
+        return try {
+            client.request(ctx.url) {
+                method = HttpMethod.parse(ctx.method)
+
+                ctx.headers.forEach { (k, v) -> header(k, v) }
+
+                if (ctx.query.isNotEmpty()) {
+                    url {
+                        ctx.query.forEach { (k, v) ->
+                            parameters.append(k, v)
+                        }
+                    }
+                }
+
+                if (ctx.method != "GET" && ctx.body != null) {
+                    contentType(ContentType.Application.Json)
+                    setBody(ctx.body)
+                }
+            }
+        } catch (ex: Exception) {
+            null
+        }
+    }
+
+    /**
+     * Метод для вызова "усиленной" проверки с consentId
+     */
     suspend fun performEnhancedChecks(
         url: String,
         method: String,
@@ -87,68 +226,51 @@ class ConsentService(private val clientProvider: ClientProvider, private val aut
         userInput: UserInput,
         productRequestId: String? = null
     ) {
-        val httpMethod = HttpMethod.parse(method)
-        val consentHeaderName = when {
-            url.contains("/product-agreements") -> "X-Product-Agreement-Consent-Id"
-            url.contains("/cards") -> "X-Consent-Id"
-            else -> "X-Consent-Id"
+        val ctx = buildRequestContext(
+            fullUrl = url,
+            method = method,
+            operation = Operation(), // можно передавать пустую operation
+            userInput = userInput,
+            bankToken = bankToken,
+            consentId = consentId
+        )
+
+        val response = executeContext(ctx)
+
+        if (response != null && response.status.value in 200..299) {
+            issues.add(
+                Issue(
+                    type = "ENHANCED_CHECK",
+                    severity = Severity.MEDIUM,
+                    description = "Эндпоинт доступен с consentId $consentId",
+                    url = url,
+                    method = method
+                )
+            )
         }
-
-        val response = try {
-            client.request(url) {
-                this.method = httpMethod
-                header("Authorization", "Bearer $bankToken")
-                header(consentHeaderName, consentId)
-                header("X-Requesting-Bank", if (url.contains("/cards")) userInput.clientId else userInput.requestingBank)
-                if (httpMethod != HttpMethod.Get) {
-                    contentType(ContentType.Application.Json)
-                    setBody("{}")
-                }
-            }
-        } catch (ex: Exception) {
-            issues.add(Issue("REQUEST_FAILED", Severity.MEDIUM, "$method $url → Exception: ${ex.message}"))
-            return
-        }
-
-        val status = response.status.value
-        val body = runCatching { response.bodyAsText() }.getOrNull()
-        if (status == 403)
-            issues.add(Issue("ENDPOINT_FORBIDDEN", Severity.LOW, "$method $url → 403", url, method))
-
-        checkSensitiveFields(body, url, method, issues)
     }
 
-    private fun checkSensitiveFields(body: String?, url: String, method: String, issues: MutableList<Issue>) {
-        if (body.isNullOrBlank()) return
-        val json = runCatching { mapper.readTree(body) }.getOrNull() ?: return
-        val sensitive = listOf("password", "token", "secret", "ssn", "creditCard", "dob")
-
-        fun traverse(node: com.fasterxml.jackson.databind.JsonNode) {
-            if (node.isObject) {
-                node.fields().forEach { (key, value) ->
-                    if (sensitive.any { key.contains(it, ignoreCase = true) }) {
-                        issues.add(Issue("EXCESSIVE_DATA_EXPOSURE", Severity.HIGH, "Ответ содержит чувствительное поле: $key", url, method))
-                    }
-                    traverse(value)
-                }
-            } else if (node.isArray) node.forEach { traverse(it) }
-        }
-        traverse(json)
-    }
-
-    fun selectConsentForPath(url: String, paymentConsentId: String?, productConsentId: String?, accountConsentId: String?): String? {
+    /**
+     * Универсальный метод для выбора consent для пути (используется в плагинах)
+     */
+    fun selectConsentForPath(
+        fullUrl: String,
+        paymentConsentId: String?,
+        productConsentId: String?,
+        accountConsentId: String?
+    ): String? {
         return when {
-            url.startsWith("/payment-consents") -> paymentConsentId
-            url.startsWith("/product-agreement-consents") -> productConsentId
-            url.startsWith("/product-agreements") -> productConsentId
-            url.startsWith("/cards") -> accountConsentId
-            else -> accountConsentId
+            fullUrl.contains("/payment-consents") -> paymentConsentId
+            fullUrl.contains("/product-agreement-consents") || fullUrl.contains("/product-agreements") -> productConsentId
+            fullUrl.contains("/cards") || fullUrl.contains("/accounts") -> accountConsentId
+            else -> null
         }
     }
 }
 
+/** Метод расширения для удаления query-параметра */
 fun String.removeQueryParam(param: String): String {
-    val uri = java.net.URI(this)
+    val uri = URI(this)
     val query = uri.query?.split("&")?.filterNot { it.startsWith("$param=") }?.joinToString("&")
-    return java.net.URI(uri.scheme, uri.authority, uri.path, query, uri.fragment).toString()
+    return URI(uri.scheme, uri.authority, uri.path, query, uri.fragment).toString()
 }

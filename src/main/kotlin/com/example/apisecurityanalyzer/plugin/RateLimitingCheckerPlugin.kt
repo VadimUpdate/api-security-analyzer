@@ -2,13 +2,17 @@ package com.example.apianalyzer.plugin
 
 import com.example.apianalyzer.model.Issue
 import com.example.apianalyzer.model.Severity
+import com.example.apianalyzer.model.UserInput
 import com.example.apianalyzer.service.ClientProvider
-import io.ktor.client.request.*
-import io.ktor.http.*
+import com.example.apianalyzer.service.ConsentService
 import io.swagger.v3.oas.models.Operation
+import io.ktor.http.*
 
 class RateLimitingCheckerPlugin(
-    private val clientProvider: ClientProvider
+    private val clientProvider: ClientProvider,
+    private val consentService: ConsentService,
+    private val userInput: UserInput,
+    private val bankToken: String
 ) : CheckerPlugin {
 
     override val name: String = "RateLimiting"
@@ -19,19 +23,33 @@ class RateLimitingCheckerPlugin(
         operation: Operation,
         issues: MutableList<Issue>
     ) {
+        val ctx = consentService.buildRequestContext(
+            fullUrl = url,
+            method = method,
+            operation = operation,
+            userInput = userInput,
+            bankToken = bankToken,
+            consentId = consentService.selectConsentForPath(
+                url.removePrefix(userInput.targetUrl),
+                paymentConsentId = null,
+                productConsentId = null,
+                accountConsentId = null
+            )
+        )
+
         try {
             repeat(5) {
-                clientProvider.client.request(url) {
-                    this.method = HttpMethod.parse(method)
-                }
+                consentService.executeContext(ctx)
             }
         } catch (e: Exception) {
-            issues += Issue(
-                type = "RATE_LIMITING",
-                severity = Severity.MEDIUM,
-                description = "Potential rate limiting issue detected: ${e.message}",
-                url = url,
-                method = method
+            issues.add(
+                Issue(
+                    type = "RATE_LIMITING",
+                    severity = Severity.MEDIUM,
+                    description = "Возможная проблема с rate limiting: ${e.message}",
+                    url = url,
+                    method = method
+                )
             )
         }
     }

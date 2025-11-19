@@ -1,9 +1,9 @@
 package com.example.apianalyzer.plugin
 
 import com.example.apianalyzer.model.Issue
+import com.example.apianalyzer.model.UserInput
 import com.example.apianalyzer.service.ClientProvider
 import com.example.apianalyzer.service.ConsentService
-import com.example.apianalyzer.model.UserInput
 import io.swagger.v3.oas.models.Operation
 
 class BuiltinCheckersPlugin(
@@ -16,12 +16,12 @@ class BuiltinCheckersPlugin(
     override val name: String = "BuiltinCheckers"
 
     private val checkers: List<CheckerPlugin> = listOf(
-        BOLACheckerPlugin(clientProvider.client),
-        BrokenAuthCheckerPlugin(clientProvider, consentService, userInput),
+        BOLACheckerPlugin(clientProvider, consentService, userInput, bankToken),
+        BrokenAuthCheckerPlugin(clientProvider, consentService, userInput, bankToken),
         MassAssignmentCheckerPlugin(clientProvider, consentService, userInput),
         ExcessiveDataExposureCheckerPlugin(clientProvider, consentService, userInput, bankToken),
-        RateLimitingCheckerPlugin(clientProvider),
-        SpecCheckerPlugin(clientProvider.client)
+        RateLimitingCheckerPlugin(clientProvider, consentService, userInput, bankToken),
+        SpecCheckerPlugin(clientProvider, consentService, userInput, bankToken)
     )
 
     override suspend fun runCheck(
