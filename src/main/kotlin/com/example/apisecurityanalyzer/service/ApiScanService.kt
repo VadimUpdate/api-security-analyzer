@@ -1,8 +1,7 @@
 package com.example.apianalyzer.service
 
 import com.example.apianalyzer.model.*
-import com.example.apianalyzer.plugin.BuiltinCheckersPlugin
-import com.example.apianalyzer.plugin.PluginRegistry
+import com.example.apianalyzer.plugin.*
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -80,20 +79,9 @@ class ApiScanService(
         if (productConsentId.isNullOrBlank() && !bankToken.isNullOrBlank())
             issues.add(Issue("PRODUCT_CONSENT_FAIL", Severity.HIGH, "Product agreement consent не получен или не одобрен"))
 
-        val plugin = BuiltinCheckersPlugin(
-            clientProvider = clientProvider,
-            authService = authService,
-            bankBaseUrl = userInput.targetUrl,
-            clientId = userInput.clientId,
-            clientSecret = userInput.clientSecret,
-            enableFuzzing = userInput.enableFuzzing
-        )
-
-        // === Исправлено ===
-        plugin.bankToken = bankToken ?: ""
-        plugin.consentId = paymentConsentId ?: accountConsentId ?: productConsentId ?: ""
-
-        val pluginRegistry = PluginRegistry().apply { register(plugin) }
+        // === Новый BuiltinCheckersPlugin с полным набором зависимостей ===
+        val builtinPlugin = BuiltinCheckersPlugin(clientProvider, consentService, userInput, bankToken ?: "")
+        val pluginRegistry = PluginRegistry().apply { register(builtinPlugin) }
 
         val accountId: String? =
             if (!bankToken.isNullOrBlank() && !accountConsentId.isNullOrBlank())

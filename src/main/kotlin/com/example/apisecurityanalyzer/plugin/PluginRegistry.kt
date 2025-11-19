@@ -7,6 +7,7 @@ import kotlin.reflect.full.callSuspend
 
 /**
  * Универсальный реестр плагинов.
+ * Позволяет регистрировать любые плагины с методом runCheck.
  */
 class PluginRegistry {
 
@@ -17,7 +18,7 @@ class PluginRegistry {
     }
 
     /**
-     * Запуск всех плагинов.
+     * Запуск всех плагинов для указанного эндпоинта.
      */
     @Suppress("UNCHECKED_CAST")
     suspend fun runAll(
@@ -34,10 +35,9 @@ class PluginRegistry {
                 val methodRef = plugin::class.members.find { it.name == "runCheck" } ?: continue
 
                 when (methodRef.parameters.size) {
-                    // plugin.runCheck(url, method, operation, issues, baselineBody, baselineHeaders, enableFuzzing)
-                    8 -> methodRef.callSuspend(plugin, url, method, operation, issues, baselineBody, baselineHeaders, enableFuzzing)
                     5 -> methodRef.callSuspend(plugin, url, method, operation, issues)
                     6 -> methodRef.callSuspend(plugin, url, method, operation, issues, enableFuzzing)
+                    8 -> methodRef.callSuspend(plugin, url, method, operation, issues, baselineBody, baselineHeaders, enableFuzzing)
                     else -> {
                         issues += Issue(
                             type = "PLUGIN_SIGNATURE_ERROR",
@@ -48,7 +48,6 @@ class PluginRegistry {
                         )
                     }
                 }
-
             } catch (e: Exception) {
                 issues += Issue(
                     type = "PLUGIN_ERROR",
