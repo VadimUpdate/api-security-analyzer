@@ -2,6 +2,8 @@ package com.example.apianalyzer.service
 
 import com.example.apianalyzer.model.*
 import com.example.apianalyzer.plugin.*
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -15,7 +17,6 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import org.springframework.stereotype.Service
-import java.net.URI
 import java.time.Instant
 
 @Service
@@ -56,14 +57,8 @@ class ApiScanService(
             null
         }
 
-        val accountConsentId = if (!bankToken.isNullOrBlank()) {
-            consentService.createAccountConsent(userInput, bankToken, issues)
-        } else null
-
-        val paymentConsentId = if (!bankToken.isNullOrBlank()) {
-            consentService.createPaymentConsent(userInput, bankToken, issues)
-        } else null
-
+        val accountConsentId = if (!bankToken.isNullOrBlank()) consentService.createAccountConsent(userInput, bankToken, issues) else null
+        val paymentConsentId = if (!bankToken.isNullOrBlank()) consentService.createPaymentConsent(userInput, bankToken, issues) else null
         var productRequestId: String? = null
         val productConsentId = if (!bankToken.isNullOrBlank()) {
             val pair = consentService.createProductAgreementConsent(userInput, bankToken, issues)
@@ -71,7 +66,6 @@ class ApiScanService(
             pair.first
         } else null
 
-        // Передаем ClientProvider, а не client
         val builtinPlugin = BuiltinCheckersPlugin(clientProvider, consentService, userInput, bankToken ?: "")
         val pluginRegistry = PluginRegistry().apply { register(builtinPlugin) }
 
@@ -99,54 +93,22 @@ class ApiScanService(
                 val operations = extractOperations(pathItem)
                 for ((method, operation) in operations) {
                     if (operation == null) continue
+                    val combinedParams: List<Parameter> = (pathItem.parameters ?: emptyList()) + (operation.parameters ?: emptyList())
 
-                    val combinedParams: List<Parameter> =
-                        (pathItem.parameters ?: emptyList()) + (operation.parameters ?: emptyList())
+                    val url = buildUrlForScan(pathTemplate, combinedParams, userInput, accountId, accountNumber, cardId, paymentConsentId, productConsentId, productRequestId)
 
-                    val url = when {
-                        pathTemplate.contains("{account_id}") && accountId != null ->
-                            buildUrlFromPath(userInput.targetUrl, pathTemplate.replace("{account_id}", accountId), combinedParams)
-                                .removeQueryParam("client_id")
-
-                        pathTemplate.startsWith("/cards") ->
-                            cardService.handleCardPaths(pathTemplate, userInput, combinedParams, accountNumber, cardId, accountConsentId, bankToken)
-
-                        pathTemplate.contains("{consent_id}") && pathTemplate.startsWith("/payment-consents") && paymentConsentId != null ->
-                            buildUrlFromPath(userInput.targetUrl, pathTemplate.replace("{consent_id}", paymentConsentId), combinedParams)
-
-                        pathTemplate.contains("{consent_id}") && pathTemplate.startsWith("/product-agreement-consents") && productConsentId != null ->
-                            buildUrlFromPath(userInput.targetUrl, pathTemplate.replace("{consent_id}", productConsentId), combinedParams)
-
-                        pathTemplate.contains("{id}") && pathTemplate.startsWith("/product-agreements") && productRequestId != null ->
-                            buildUrlFromPath(userInput.targetUrl, pathTemplate.replace("{id}", productRequestId), combinedParams)
-
-                        pathTemplate == "/product-agreements" ->
-                            "${buildUrlFromPath(userInput.targetUrl, pathTemplate, combinedParams)}?client_id=${userInput.clientId}-1"
-
-                        else -> buildUrlFromPath(userInput.targetUrl, pathTemplate, combinedParams)
-                            .removeQueryParam("client_id")
-                    }
-
-                    jobs += async {
+                    jobs.add(async<Unit> {
                         semaphore.withPermit {
                             delay(userInput.politenessDelayMs.toLong())
                             try {
+                                val requestBody = generateValidRequestBody(operation, userInput, accountNumber)
+                                performRequestWithAuthAndBody(url, method, requestBody, bankToken, accountConsentId, issues)
                                 pluginRegistry.runAll(url, method, operation, issues)
-                                if (!bankToken.isNullOrBlank()) {
-                                    val consentToUse = consentService.selectConsentForPath(
-                                        url,
-                                        paymentConsentId,
-                                        productConsentId,
-                                        accountConsentId
-                                    )
-                                    if (!consentToUse.isNullOrBlank())
-                                        consentService.performEnhancedChecks(
-                                            url, method, issues, bankToken, consentToUse, userInput, productRequestId
-                                        )
-                                }
-                            } catch (_: Exception) {}
+                            } catch (ex: Exception) {
+                                issues.add(Issue("SCAN_ERROR", Severity.MEDIUM, "Ошибка при запросе $url: ${ex.message}"))
+                            }
                         }
-                    }
+                    })
                 }
             }
             jobs.awaitAll()
@@ -179,5 +141,81 @@ class ApiScanService(
             issues = issues,
             accountIds = emptyList()
         )
-}
 
+    private fun generateValidRequestBody(operation: io.swagger.v3.oas.models.Operation, userInput: UserInput, accountNumber: String?): JsonNode? {
+        val schema = operation.requestBody?.content?.values?.firstOrNull()?.schema ?: return null
+        return buildSampleJsonFromSchema(schema, userInput, accountNumber)
+    }
+
+    private suspend fun performRequestWithAuthAndBody(
+        url: String,
+        method: String,
+        body: JsonNode?,
+        token: String?,
+        consentId: String?,
+        issues: MutableList<Issue>
+    ) {
+        try {
+            val response: HttpResponse = client.request(url) {
+                this.method = HttpMethod.parse(method)
+                if (body != null) {
+                    contentType(ContentType.Application.Json)
+                    setBody(body.toString())
+                }
+                if (!token.isNullOrBlank()) header("Authorization", "Bearer $token")
+                if (!consentId.isNullOrBlank()) header("X-Consent-Id", consentId)
+            }
+        } catch (ex: ClientRequestException) {
+            issues.add(Issue("SPEC_MISMATCH", Severity.MEDIUM, "Ответ не соответствует спецификации: ${ex.response.status.value}"))
+        } catch (ex: Exception) {
+            issues.add(Issue("REQUEST_FAIL", Severity.MEDIUM, "Ошибка запроса: ${ex.message}"))
+        }
+    }
+
+    private fun buildUrlForScan(
+        pathTemplate: String,
+        params: List<Parameter>,
+        userInput: UserInput,
+        accountId: String?,
+        accountNumber: String?,
+        cardId: String?,
+        paymentConsentId: String?,
+        productConsentId: String?,
+        productRequestId: String?
+    ): String {
+        var url = pathTemplate
+        if (url.contains("{account_id}") && accountId != null) url = url.replace("{account_id}", accountId)
+        if (url.contains("{consent_id}")) {
+            url = when {
+                url.startsWith("/payment-consents") && paymentConsentId != null -> url.replace("{consent_id}", paymentConsentId)
+                url.startsWith("/product-agreement-consents") && productConsentId != null -> url.replace("{consent_id}", productConsentId)
+                else -> url
+            }
+        }
+        if (url.contains("{id}") && productRequestId != null) url = url.replace("{id}", productRequestId)
+        if (url.startsWith("/product-agreements")) url += "?client_id=${userInput.clientId}-1"
+        return buildUrlFromPath(userInput.targetUrl, url, params).removeQueryParam("client_id")
+    }
+
+    private fun buildSampleJsonFromSchema(schema: io.swagger.v3.oas.models.media.Schema<*>, userInput: UserInput, accountNumber: String?): JsonNode {
+        val node: ObjectNode = mapper.createObjectNode()
+        schema.properties?.forEach { (key, prop) ->
+            when {
+                prop.type == "string" -> {
+                    node.put(key, when (key.lowercase()) {
+                        "client_id" -> userInput.clientId
+                        "bank" -> userInput.requestingBank
+                        "account_number" -> accountNumber ?: "00000000"
+                        else -> "sample"
+                    })
+                }
+                prop.type == "integer" -> node.put(key, 1)
+                prop.type == "number" -> node.put(key, 1.0)
+                prop.type == "boolean" -> node.put(key, true)
+                prop.type == "object" -> node.set<JsonNode>(key, buildSampleJsonFromSchema(prop, userInput, accountNumber))
+                else -> node.put(key, "sample")
+            }
+        }
+        return node
+    }
+}

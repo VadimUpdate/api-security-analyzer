@@ -33,24 +33,36 @@ class ExcessiveDataExposureCheckerPlugin(
             consentId = null
         )
 
+        println("=== ExcessiveDataExposure Check ===")
+        println("Request URL: ${ctx.url}")
+        println("Query Params: ${ctx.url.substringAfter("?", "").takeIf { it.isNotBlank() } ?: "нет"}")
+        println("Request Headers: ${ctx.headers}")
+        println("Request Body: ${ctx.body ?: "пусто"}")
+
         val response: HttpResponse? = try {
             consentService.executeContext(ctx)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            println("Ошибка запроса: ${e.message}")
             null
         }
 
-        val bodyText = runCatching { response?.bodyAsText() }.getOrNull()
+        response?.let {
+            println("Response Status: ${it.status.value}")
+            println("Response Headers: ${it.headers.entries().joinToString()}")
+            val respBody = runCatching { it.bodyAsText() }.getOrElse { "не удалось прочитать тело" }
+            println("Response Body: $respBody")
 
-        if ((bodyText?.length ?: 0) > 1000 || containsSensitiveField(bodyText)) {
-            issues.add(
-                Issue(
-                    type = "EXCESSIVE_DATA_EXPOSURE",
-                    severity = Severity.MEDIUM,
-                    description = "Ответ содержит слишком много или чувствительные данные",
-                    url = url,
-                    method = method
+            if (respBody.length > 1000 || containsSensitiveField(respBody)) {
+                issues.add(
+                    Issue(
+                        type = "EXCESSIVE_DATA_EXPOSURE",
+                        severity = Severity.MEDIUM,
+                        description = "Ответ содержит слишком много или чувствительные данные",
+                        url = url,
+                        method = method
+                    )
                 )
-            )
+            }
         }
     }
 

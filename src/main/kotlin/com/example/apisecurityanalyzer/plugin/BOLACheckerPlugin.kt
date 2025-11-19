@@ -23,7 +23,6 @@ class BOLACheckerPlugin(
         operation: Operation,
         issues: MutableList<Issue>
     ) {
-        // строим чистый RequestContext
         val cleanCtx = consentService.buildRequestContext(
             fullUrl = url,
             method = method,
@@ -33,27 +32,36 @@ class BOLACheckerPlugin(
             consentId = null
         )
 
-        // атака BOLA → убираем X-Consent-Id
+        println("=== BOLA/IDOR Check ===")
+        println("Request URL: ${cleanCtx.url}")
+        println("Query Params: ${cleanCtx.url.substringAfter("?", "").takeIf { it.isNotBlank() } ?: "нет"}")
+        println("Request Headers: ${cleanCtx.headers}")
+        println("Request Body: ${cleanCtx.body ?: "пусто"}")
+
         val bolaCtx = cleanCtx.copy(headers = cleanCtx.headers.toMutableMap())
         bolaCtx.headers.remove("X-Consent-Id")
         bolaCtx.headers.remove("X-Product-Agreement-Consent-Id")
 
-        val response = consentService.executeContext(bolaCtx)
+        val response: HttpResponse? = consentService.executeContext(bolaCtx)
+        response?.let {
+            println("Response Status: ${it.status.value}")
+            println("Response Headers: ${it.headers.entries().joinToString()}")
+            val respBody = runCatching { it.bodyAsText() }.getOrElse { "не удалось прочитать тело" }
+            println("Response Body: $respBody")
 
-        // Если ресурс доступен без consent → BOLA
-        if (response != null && response.status.value in 200..299) {
-            issues.add(
-                Issue(
-                    type = "BOLA",
-                    severity = Severity.HIGH,
-                    description = "Эндпоинт доступен без consent-id",
-                    url = url,
-                    method = method
+            if (it.status.value in 200..299) {
+                issues.add(
+                    Issue(
+                        type = "BOLA",
+                        severity = Severity.HIGH,
+                        description = "Эндпоинт доступен без consent-id",
+                        url = url,
+                        method = method
+                    )
                 )
-            )
+            }
         }
 
-        // IDOR эвристика
         if (url.contains(Regex("/[A-Za-z]*/\\d+"))) {
             issues.add(
                 Issue(

@@ -5,6 +5,7 @@ import com.example.apianalyzer.model.Severity
 import com.example.apianalyzer.model.UserInput
 import com.example.apianalyzer.service.ClientProvider
 import com.example.apianalyzer.service.ConsentService
+import io.ktor.client.statement.*
 import io.swagger.v3.oas.models.Operation
 
 class SpecCheckerPlugin(
@@ -36,15 +37,37 @@ class SpecCheckerPlugin(
             )
         )
 
-        try {
-            val response = consentService.executeContext(ctx)
+        println("=== Spec Check ===")
+        println("Request URL: ${ctx.url}")
+        println("Request Headers: ${ctx.headers}")
+        println("Request Body: ${ctx.body ?: "пусто"}")
 
-            if (response == null || response.status.value >= 400) {
+        try {
+            val response: HttpResponse? = consentService.executeContext(ctx)
+
+            response?.let {
+                println("Response Status: ${it.status.value}")
+                println("Response Headers: ${it.headers.entries().joinToString()}")
+                val respBody = runCatching { it.bodyAsText() }.getOrElse { "не удалось прочитать тело" }
+                println("Response Body: $respBody")
+
+                if (it.status.value >= 400) {
+                    issues.add(
+                        Issue(
+                            type = "SPEC_MISMATCH",
+                            severity = Severity.MEDIUM,
+                            description = "Ответ не соответствует спецификации (HTTP ${it.status.value})",
+                            url = url,
+                            method = method
+                        )
+                    )
+                }
+            } ?: run {
                 issues.add(
                     Issue(
                         type = "SPEC_MISMATCH",
                         severity = Severity.MEDIUM,
-                        description = "Ответ не соответствует спецификации (HTTP ${response?.status?.value ?: "нет ответа"})",
+                        description = "Нет ответа от сервера",
                         url = url,
                         method = method
                     )

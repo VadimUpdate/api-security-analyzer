@@ -33,24 +33,37 @@ class DebugEndpointsCheckerPlugin(
             consentId = null
         )
 
-        // Пробуем выполнить GET или HEAD запрос
+        println("=== DebugEndpoints Check ===")
+        println("Request URL: ${ctx.url}")
+        println("Query Params: ${ctx.url.substringAfter("?", "").takeIf { it.isNotBlank() } ?: "нет"}")
+        println("Request Headers: ${ctx.headers}")
+        println("Request Body: ${ctx.body ?: "пусто"}")
+
+        // Пробуем выполнить запрос
         val response: HttpResponse? = try {
             consentService.executeContext(ctx)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            println("Ошибка запроса: ${e.message}")
             null
         }
 
-        // Если эндпоинт доступен и возвращает 2xx → возможно debug/admin
-        if (response != null && response.status.value in 200..299) {
-            issues.add(
-                Issue(
-                    type = "DEBUG_ENDPOINT_CHECK",
-                    severity = Severity.MEDIUM,
-                    description = "Эндпоинт может быть debug/admin, доступен без ограничений",
-                    url = url,
-                    method = method
+        response?.let {
+            println("Response Status: ${it.status.value}")
+            println("Response Headers: ${it.headers.entries().joinToString()}")
+            val respBody = runCatching { it.bodyAsText() }.getOrElse { "не удалось прочитать тело" }
+            println("Response Body: $respBody")
+
+            if (it.status.value in 200..299) {
+                issues.add(
+                    Issue(
+                        type = "DEBUG_ENDPOINT_CHECK",
+                        severity = Severity.MEDIUM,
+                        description = "Эндпоинт может быть debug/admin, доступен без ограничений",
+                        url = url,
+                        method = method
+                    )
                 )
-            )
+            }
         }
     }
 }

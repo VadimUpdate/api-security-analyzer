@@ -7,7 +7,6 @@ import com.example.apianalyzer.service.ClientProvider
 import com.example.apianalyzer.service.ConsentService
 import io.ktor.client.statement.*
 import io.swagger.v3.oas.models.Operation
-import io.ktor.http.*
 
 class InjectionCheckerPlugin(
     private val clientProvider: ClientProvider,
@@ -17,16 +16,20 @@ class InjectionCheckerPlugin(
 
     override val name: String = "Injection"
 
+    private val payloads = listOf(
+        "'; DROP TABLE users;--",
+        "\" OR \"1\"=\"1",
+        "<script>alert(1)</script>"
+    )
+
     override suspend fun runCheck(
         url: String,
         method: String,
         operation: Operation,
         issues: MutableList<Issue>
     ) {
-        val payloads = listOf("'; DROP TABLE users;--", "\" OR \"1\"=\"1", "<script>alert(1)</script>")
-
         for (payload in payloads) {
-            // Формируем RequestContext с пустым consentId
+            val safePayload = payload.replace("\"", "\\\"")
             val ctx = consentService.buildRequestContext(
                 fullUrl = url,
                 method = method,
@@ -36,9 +39,8 @@ class InjectionCheckerPlugin(
                 consentId = null
             )
 
-            // Подставляем payload в тело запроса для методов, отличных от GET
-            val attackCtx = if (ctx.method != "GET") {
-                ctx.copy(body = """{"test":"$payload"}""")
+            val attackCtx = if (!method.equals("GET", true)) {
+                ctx.copy(body = """{"test":"$safePayload"}""")
             } else ctx
 
             val response: HttpResponse? = try {

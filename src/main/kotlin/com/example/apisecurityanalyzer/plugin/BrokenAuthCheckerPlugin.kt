@@ -5,6 +5,7 @@ import com.example.apianalyzer.model.Severity
 import com.example.apianalyzer.model.UserInput
 import com.example.apianalyzer.service.ClientProvider
 import com.example.apianalyzer.service.ConsentService
+import io.ktor.client.statement.*
 import io.swagger.v3.oas.models.Operation
 
 class BrokenAuthCheckerPlugin(
@@ -22,7 +23,6 @@ class BrokenAuthCheckerPlugin(
         operation: Operation,
         issues: MutableList<Issue>
     ) {
-        // чистый контекст от ConsentService
         val cleanCtx = consentService.buildRequestContext(
             fullUrl = url,
             method = method,
@@ -32,22 +32,33 @@ class BrokenAuthCheckerPlugin(
             consentId = null
         )
 
-        // BrokenAuth атака → удаляем Authorization
+        println("=== BrokenAuth Check ===")
+        println("Request URL: ${cleanCtx.url}")
+        println("Query Params: ${cleanCtx.url.substringAfter("?", "").takeIf { it.isNotBlank() } ?: "нет"}")
+        println("Request Headers: ${cleanCtx.headers}")
+        println("Request Body: ${cleanCtx.body ?: "пусто"}")
+
         val badCtx = cleanCtx.copy(headers = cleanCtx.headers.toMutableMap())
         badCtx.headers.remove("Authorization")
 
-        val resp = consentService.executeContext(badCtx)
+        val response: HttpResponse? = consentService.executeContext(badCtx)
+        response?.let {
+            println("Response Status: ${it.status.value}")
+            println("Response Headers: ${it.headers.entries().joinToString()}")
+            val respBody = runCatching { it.bodyAsText() }.getOrElse { "не удалось прочитать тело" }
+            println("Response Body: $respBody")
 
-        if (resp != null && resp.status.value in 200..299) {
-            issues.add(
-                Issue(
-                    type = "BROKEN_AUTH",
-                    severity = Severity.HIGH,
-                    description = "Эндпоинт успешен без Authorization",
-                    url = url,
-                    method = method
+            if (it.status.value in 200..299) {
+                issues.add(
+                    Issue(
+                        type = "BROKEN_AUTH",
+                        severity = Severity.HIGH,
+                        description = "Эндпоинт успешен без Authorization",
+                        url = url,
+                        method = method
+                    )
                 )
-            )
+            }
         }
     }
 }

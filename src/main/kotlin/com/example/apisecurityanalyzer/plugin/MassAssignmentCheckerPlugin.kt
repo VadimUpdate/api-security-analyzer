@@ -7,7 +7,6 @@ import com.example.apianalyzer.service.ClientProvider
 import com.example.apianalyzer.service.ConsentService
 import io.ktor.client.statement.*
 import io.swagger.v3.oas.models.Operation
-import io.ktor.http.*
 
 class MassAssignmentCheckerPlugin(
     private val clientProvider: ClientProvider,
@@ -27,7 +26,6 @@ class MassAssignmentCheckerPlugin(
     ) {
         if (!method.equals("POST", true) && !method.equals("PUT", true)) return
 
-        // Формируем RequestContext без consentId
         val ctx = consentService.buildRequestContext(
             fullUrl = url,
             method = method,
@@ -37,7 +35,6 @@ class MassAssignmentCheckerPlugin(
             consentId = null
         )
 
-        // Подставляем payload в тело запроса
         val attackCtx = ctx.copy(body = dangerousFieldsPayload)
 
         val response: HttpResponse? = try {
@@ -47,12 +44,14 @@ class MassAssignmentCheckerPlugin(
         }
 
         if (response?.status?.value in 200..299) {
-            issues += Issue(
-                type = "MASS_ASSIGNMENT",
-                severity = Severity.HIGH,
-                description = "Сервер принял неизвестные опасные поля",
-                url = url,
-                method = method
+            issues.add(
+                Issue(
+                    type = "MASS_ASSIGNMENT",
+                    severity = Severity.HIGH,
+                    description = "Сервер принял неизвестные опасные поля",
+                    url = url,
+                    method = method
+                )
             )
         }
     }

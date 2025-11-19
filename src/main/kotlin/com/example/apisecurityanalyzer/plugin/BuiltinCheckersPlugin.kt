@@ -18,10 +18,9 @@ class BuiltinCheckersPlugin(
     private val checkers: List<CheckerPlugin> = listOf(
         BOLACheckerPlugin(clientProvider, consentService, userInput, bankToken),
         BrokenAuthCheckerPlugin(clientProvider, consentService, userInput, bankToken),
-        MassAssignmentCheckerPlugin(clientProvider, consentService, userInput),
-        ExcessiveDataExposureCheckerPlugin(clientProvider, consentService, userInput, bankToken),
-        RateLimitingCheckerPlugin(clientProvider, consentService, userInput, bankToken),
-        SpecCheckerPlugin(clientProvider, consentService, userInput, bankToken)
+        SpecCheckerPlugin(clientProvider, consentService, userInput, bankToken),
+        RateLimitingCheckerPlugin(clientProvider, consentService, userInput, bankToken)
+        // при желании можно добавить MassAssignment и другие плагины
     )
 
     override suspend fun runCheck(

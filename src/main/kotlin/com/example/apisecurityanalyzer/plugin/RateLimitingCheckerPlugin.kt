@@ -6,7 +6,6 @@ import com.example.apianalyzer.model.UserInput
 import com.example.apianalyzer.service.ClientProvider
 import com.example.apianalyzer.service.ConsentService
 import io.swagger.v3.oas.models.Operation
-import io.ktor.http.*
 
 class RateLimitingCheckerPlugin(
     private val clientProvider: ClientProvider,
@@ -36,6 +35,12 @@ class RateLimitingCheckerPlugin(
                 accountConsentId = null
             )
         )
+
+        println("=== RateLimiting Check ===")
+        println("Request URL: ${ctx.url}")
+        println("Query Params: ${ctx.url.substringAfter("?", "").takeIf { it.isNotBlank() } ?: "нет"}")
+        println("Request Headers: ${ctx.headers}")
+        println("Request Body: ${ctx.body ?: "пусто"}")
 
         try {
             repeat(5) {
