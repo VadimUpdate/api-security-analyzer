@@ -28,28 +28,22 @@ class AuthService(
 
     /**
      * Унифицированная функция выполнения запросов с автоматическим:
-     * - добавлением Authorization: Bearer
+     * - добавлением Authorization: Bearer (OpenID токен)
      * - добавлением X-Requesting-Bank
      * - добавлением X-Consent-Id
-     * - добавлением client_id в GET/POST/PUT/PATCH
-     * - retry на 401 (получение банк-токена)
-     *
-     * @param requireToken - если true, запретить выполнение запроса без токена/consentId
+     * - retry на 401
      */
     suspend fun performRequestWithAuth(
         method: HttpMethod,
         url: String,
-        bankBaseUrl: String,
         clientId: String,
         clientSecret: String,
         consentId: String = "",
-        addClientIdToGet: Boolean = true,
         requireToken: Boolean = true,
         bodyBlock: (HttpRequestBuilder.() -> Unit)? = null,
         issues: MutableList<Issue>? = null
     ): HttpResponse {
-
-        if (requireToken && (authToken.isNullOrBlank() || consentId.isBlank())) {
+        if (requireToken && (authToken.isNullOrBlank() || (consentId.isBlank()))) {
             throw IllegalStateException("Требуется токен/consentId для запроса $url")
         }
 
@@ -64,10 +58,6 @@ class AuthService(
                 header("User-Agent", "ApiSecurityAnalyzer/1.0")
                 contentType(ContentType.Application.Json)
 
-                if (addClientIdToGet && method in listOf(HttpMethod.Get, HttpMethod.Post, HttpMethod.Put, HttpMethod.Patch)) {
-                    url { parameters.append("client_id", clientId) }
-                }
-
                 bodyBlock?.invoke(this)
             }
         }
@@ -78,7 +68,7 @@ class AuthService(
         } catch (e: ResponseException) {
             if (e.response.status.value == 401) {
                 tokenMutex.withLock {
-                    val newToken = fetchBankToken(bankBaseUrl, clientId, clientSecret, issues ?: mutableListOf())
+                    val newToken = fetchOpenIdToken(clientId, clientSecret, issues ?: mutableListOf())
                     if (!newToken.isNullOrBlank()) authToken = newToken
                 }
                 return execute(authToken)
@@ -87,55 +77,88 @@ class AuthService(
         }
     }
 
-    suspend fun fetchBankToken(
-        bankBaseUrl: String,
+    /**
+     * Получение OpenID token через client_credentials
+     */
+    suspend fun fetchOpenIdToken(
         clientId: String,
         clientSecret: String,
         issues: MutableList<Issue>
     ): String? {
-        val tokenUrl = bankBaseUrl.trimEnd('/') + "/auth/bank-token"
+        val tokenUrl =
+            "https://auth.bankingapi.ru/auth/realms/kubernetes/protocol/openid-connect/token"
         return try {
             val resp: HttpResponse = client.post(tokenUrl) {
-                url { parameters.append("client_id", clientId); parameters.append("client_secret", clientSecret) }
-                contentType(ContentType.Application.Json)
-                setBody("{}")
+                contentType(ContentType.Application.FormUrlEncoded)
+                setBody(
+                    listOf(
+                        "grant_type" to "client_credentials",
+                        "client_id" to clientId,
+                        "client_secret" to clientSecret
+                    ).formUrlEncode()
+                )
             }
+
             if (!resp.status.isSuccess()) {
-                issues.add(Issue("TOKEN_HTTP_ERROR", Severity.HIGH, "Ошибка HTTP ${resp.status}", tokenUrl, "POST", resp.bodyAsText()))
+                issues.add(
+                    Issue(
+                        "TOKEN_HTTP_ERROR",
+                        Severity.HIGH,
+                        "Ошибка HTTP ${resp.status}",
+                        tokenUrl,
+                        "POST",
+                        resp.bodyAsText()
+                    )
+                )
                 return null
             }
+
             mapper.readTree(resp.bodyAsText()).path("access_token").asText(null)
         } catch (ex: Exception) {
-            issues.add(Issue("TOKEN_EXCEPTION", Severity.HIGH, "Исключение при запросе bank-token", tokenUrl, "POST", ex.message ?: "unknown"))
+            issues.add(
+                Issue(
+                    "TOKEN_EXCEPTION",
+                    Severity.HIGH,
+                    "Исключение при запросе OpenID токена",
+                    tokenUrl,
+                    "POST",
+                    ex.message ?: "unknown"
+                )
+            )
             null
         }
     }
 
-    suspend fun getBankToken(
-        bankBaseUrl: String,
+    suspend fun getOpenIdToken(
         clientId: String,
         clientSecret: String,
         issues: MutableList<Issue> = mutableListOf()
     ): String {
         val token = authToken
         if (!token.isNullOrBlank()) return token
-        val newToken = fetchBankToken(bankBaseUrl, clientId, clientSecret, issues)
+        val newToken = fetchOpenIdToken(clientId, clientSecret, issues)
         if (!newToken.isNullOrBlank()) {
             authToken = newToken
             return newToken
         }
-        throw IllegalStateException("Не удалось получить bankToken")
+        throw IllegalStateException("Не удалось получить OpenID token")
     }
 
     suspend fun createConsent(
-        bankBaseUrl: String,
         clientId: String,
         clientSecret: String,
         issues: MutableList<Issue>,
-        permissions: List<String> = listOf("ReadCards","ReadAccountsBasic","ReadAccountsDetail","ReadBalances","ManageAccounts","ManageCards")
+        permissions: List<String> = listOf(
+            "ReadCards",
+            "ReadAccountsBasic",
+            "ReadAccountsDetail",
+            "ReadBalances",
+            "ManageAccounts",
+            "ManageCards"
+        )
     ): String {
-        val token = getBankToken(bankBaseUrl, clientId, clientSecret, issues)
-        val consentUrl = "$bankBaseUrl/account-consents/request"
+        val token = getOpenIdToken(clientId, clientSecret, issues)
+        val consentUrl = "https://api.bankingapi.ru/account-consents/request"
         val expiration = OffsetDateTime.now().plusHours(24).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 
         val requestBody = mapOf(

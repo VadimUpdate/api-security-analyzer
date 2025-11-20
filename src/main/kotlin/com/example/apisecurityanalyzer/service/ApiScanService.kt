@@ -52,39 +52,39 @@ class ApiScanService(
         val pathsMap = openApi.paths ?: emptyMap()
         val totalEndpoints = pathsMap.entries.sumOf { (_, pi) -> extractOperations(pi).size }
 
-        val bankToken = try {
-            authService.getBankToken(userInput.targetUrl, userInput.clientId, userInput.clientSecret, issues)
+        val openIdToken = try {
+            authService.getOpenIdToken(userInput.clientId, userInput.clientSecret, issues)
         } catch (e: Exception) {
-            issues.add(Issue("AUTH_TOKEN_FAIL", Severity.HIGH, "Не удалось получить bank token: ${e.message}"))
+            issues.add(Issue("AUTH_TOKEN_FAIL", Severity.HIGH, "Не удалось получить OpenID token: ${e.message}"))
             null
         }
 
-        val accountConsentId = if (!bankToken.isNullOrBlank()) consentService.createAccountConsent(userInput, bankToken, issues) else null
-        val paymentConsentId = if (!bankToken.isNullOrBlank()) consentService.createPaymentConsent(userInput, bankToken, issues) else null
+        val accountConsentId = if (!openIdToken.isNullOrBlank()) consentService.createAccountConsent(userInput, openIdToken, issues) else null
+        val paymentConsentId = if (!openIdToken.isNullOrBlank()) consentService.createPaymentConsent(userInput, openIdToken, issues) else null
         var productRequestId: String? = null
-        val productConsentId = if (!bankToken.isNullOrBlank()) {
-            val pair = consentService.createProductAgreementConsent(userInput, bankToken, issues)
+        val productConsentId = if (!openIdToken.isNullOrBlank()) {
+            val pair = consentService.createProductAgreementConsent(userInput, openIdToken, issues)
             productRequestId = pair.second
             pair.first
         } else null
 
-        val builtinPlugin = BuiltinCheckersPlugin(clientProvider, consentService, userInput, bankToken ?: "")
+        val builtinPlugin = BuiltinCheckersPlugin(clientProvider, consentService, userInput, openIdToken ?: "")
         val pluginRegistry = PluginRegistry().apply { register(builtinPlugin) }
 
         // получить accountId/accountNumber/cardId
         val accountId: String? =
-            if (!bankToken.isNullOrBlank() && !accountConsentId.isNullOrBlank())
-                cardService.getFirstAccount(userInput.targetUrl, bankToken, accountConsentId, userInput.clientId)
+            if (!openIdToken.isNullOrBlank() && !accountConsentId.isNullOrBlank())
+                cardService.getFirstAccount(userInput.targetUrl, openIdToken, accountConsentId, userInput.clientId)
             else null
 
         val accountNumber: String? =
-            if (!bankToken.isNullOrBlank() && !accountConsentId.isNullOrBlank() && accountId != null)
-                cardService.getFirstAccountNumber(userInput.targetUrl, bankToken, accountConsentId, userInput.clientId, accountId)
+            if (!openIdToken.isNullOrBlank() && !accountConsentId.isNullOrBlank() && accountId != null)
+                cardService.getFirstAccountNumber(userInput.targetUrl, openIdToken, accountConsentId, userInput.clientId, accountId)
             else null
 
         val cardId: String? =
-            if (!bankToken.isNullOrBlank() && !accountConsentId.isNullOrBlank() && accountNumber != null)
-                cardService.getFirstCard(userInput.targetUrl, bankToken, accountConsentId, userInput.clientId, accountNumber)
+            if (!openIdToken.isNullOrBlank() && !accountConsentId.isNullOrBlank() && accountNumber != null)
+                cardService.getFirstCard(userInput.targetUrl, openIdToken, accountConsentId, userInput.clientId, accountNumber)
             else null
 
         val semaphore = Semaphore(userInput.maxConcurrency)
@@ -110,10 +110,10 @@ class ApiScanService(
                             try {
                                 val requestBody = generateValidRequestBody(operation, userInput, accountNumber)
 
-                                // делаем "контрактный" запрос с выбором ГОСТ/обычный
-                                performRequestWithAuthAndBody(url, method, requestBody, bankToken, accountConsentId, issues, userInput.useGostGateway)
+                                performRequestWithAuthAndBody(
+                                    url, method, requestBody, openIdToken, accountConsentId, issues, userInput.useGostGateway
+                                )
 
-                                // выборочные проверки по флагам
                                 builtinPlugin.runChecksByFlagsIfEnabled(
                                     url,
                                     method,
@@ -131,7 +131,6 @@ class ApiScanService(
             jobs.awaitAll()
         }
 
-        // глобальные проверки по флагам
         if (userInput.enableRateLimiting || userInput.enableSensitiveFiles || userInput.enablePublicSwagger) {
             runGlobalChecks(client, userInput.targetUrl, issues, userInput)
         }
@@ -184,7 +183,6 @@ class ApiScanService(
             if (useGostGateway) {
                 val accessToken = token ?: throw IllegalStateException("Token required for GOST gateway")
                 val result = executeGostCurl(url, method, accessToken, body)
-                // можно логировать result, при необходимости парсить
             } else {
                 client.request(url) {
                     this.method = HttpMethod.parse(method)
@@ -272,9 +270,6 @@ class ApiScanService(
         return node
     }
 
-    /**
-     * Выполнение запроса через curl с поддержкой ГОСТ
-     */
     private fun executeGostCurl(url: String, method: String, token: String, body: JsonNode?): String {
         val command = mutableListOf(
             "curl", "-v", "-k",
@@ -301,26 +296,17 @@ class ApiScanService(
     }
 }
 
-/**
- * Глобальные проверки с учётом флагов включения
- */
 suspend fun runGlobalChecks(
     client: io.ktor.client.HttpClient,
     baseUrl: String,
     issues: MutableList<Issue>,
     userInput: UserInput
 ) {
-    if (userInput.enableRateLimiting)
-        checkRateLimiting(client, baseUrl, issues)
-
-    if (userInput.enableSensitiveFiles)
-        checkSensitiveFiles(client, baseUrl, issues)
-
-    if (userInput.enablePublicSwagger)
-        checkPublicSwagger(client, baseUrl, issues)
+    if (userInput.enableRateLimiting) checkRateLimiting(client, baseUrl, issues)
+    if (userInput.enableSensitiveFiles) checkSensitiveFiles(client, baseUrl, issues)
+    if (userInput.enablePublicSwagger) checkPublicSwagger(client, baseUrl, issues)
 }
 
-// Заглушки для методов, чтобы проект компилировался
 suspend fun checkRateLimiting(client: io.ktor.client.HttpClient, baseUrl: String, issues: MutableList<Issue>) {}
 suspend fun checkSensitiveFiles(client: io.ktor.client.HttpClient, baseUrl: String, issues: MutableList<Issue>) {}
 suspend fun checkPublicSwagger(client: io.ktor.client.HttpClient, baseUrl: String, issues: MutableList<Issue>) {}

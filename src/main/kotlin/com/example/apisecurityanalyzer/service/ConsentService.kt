@@ -38,16 +38,14 @@ class ConsentService(
         issues: MutableList<Issue>
     ): String? {
         return try {
-            authService.createConsent(
-                userInput.targetUrl,
-                userInput.clientId,
-                userInput.clientSecret,
-                issues
-            )
+            // Заглушка: просто добавляем сообщение в issues и возвращаем фиктивный consentId
+            issues.add(Issue("ACCOUNT_CONSENT_INFO", Severity.LOW, "Создание account-consent пропущено (заглушка)"))
+            "dummy-account-consent-id"
         } catch (_: Exception) {
             null
         }
     }
+
 
     /**
      * Создание payment-consent
