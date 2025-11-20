@@ -53,6 +53,7 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
 
+
     // PostgreSQL
     runtimeOnly("org.postgresql:postgresql")
 
