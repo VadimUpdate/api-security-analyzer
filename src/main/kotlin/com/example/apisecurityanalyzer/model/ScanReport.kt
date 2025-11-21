@@ -60,5 +60,6 @@ data class Issue(
     val description: String,
     val url: String? = null,
     val method: String? = null,
-    val evidence: String? = null
+    val evidence: String? = null,
+    val recommendation: String? = null
 )

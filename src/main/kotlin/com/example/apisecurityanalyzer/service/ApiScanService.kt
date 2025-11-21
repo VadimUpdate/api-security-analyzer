@@ -3,7 +3,6 @@ package com.example.apianalyzer.service
 import com.example.apianalyzer.model.*
 import com.example.apianalyzer.plugin.*
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -23,17 +22,18 @@ import java.time.Instant
 
 @Service
 class ApiScanService(
-    private val clientProvider: ClientProvider = ClientProvider(),
-    private val authService: AuthService = AuthService(clientProvider),
-    private val cardService: CardService = CardService(clientProvider.client),
-    private val consentService: ConsentService = ConsentService(clientProvider, authService)
+    private val clientProvider: ClientProvider,
+    private val authService: AuthService,
+    private val consentService: ConsentService
 ) {
+
     private val mapper = jacksonObjectMapper()
     private val client get() = clientProvider.client
 
     fun runScan(userInput: UserInput): ScanReport = runBlocking {
         val issues = mutableListOf<Issue>()
 
+        // Загрузка спецификации OpenAPI
         val specText = try {
             client.get(userInput.specUrl).bodyAsText()
         } catch (e: Exception) {
@@ -52,6 +52,7 @@ class ApiScanService(
         val pathsMap = openApi.paths ?: emptyMap()
         val totalEndpoints = pathsMap.entries.sumOf { (_, pi) -> extractOperations(pi).size }
 
+        // Получение токена
         val openIdToken = try {
             authService.getOpenIdToken(userInput.clientId, userInput.clientSecret, issues)
         } catch (e: Exception) {
@@ -59,33 +60,19 @@ class ApiScanService(
             null
         }
 
-        val accountConsentId = if (!openIdToken.isNullOrBlank()) consentService.createAccountConsent(userInput, openIdToken, issues) else null
-        val paymentConsentId = if (!openIdToken.isNullOrBlank()) consentService.createPaymentConsent(userInput, openIdToken, issues) else null
-        var productRequestId: String? = null
-        val productConsentId = if (!openIdToken.isNullOrBlank()) {
-            val pair = consentService.createProductAgreementConsent(userInput, openIdToken, issues)
-            productRequestId = pair.second
-            pair.first
-        } else null
+        // ---------------------------
+        // ПЛАГИНЫ
+        // ---------------------------
+        val plugins: List<CheckerPlugin> = listOf(
+            BrokenAuthCheckerPlugin(clientProvider, consentService, userInput, openIdToken ?: ""),
+            BOLACheckerPlugin(clientProvider, consentService, userInput, openIdToken ?: ""),
+            IDORCheckerPlugin(clientProvider, consentService, userInput, openIdToken ?: ""),
+            MassAssignmentCheckerPlugin(clientProvider, consentService, userInput),
+            InjectionCheckerPlugin(clientProvider, consentService, userInput),
+            SensitiveFilesCheckerPlugin(clientProvider, consentService, userInput, openIdToken ?: "")
+        )
 
-        val builtinPlugin = BuiltinCheckersPlugin(clientProvider, consentService, userInput, openIdToken ?: "")
-        val pluginRegistry = PluginRegistry().apply { register(builtinPlugin) }
 
-        // получить accountId/accountNumber/cardId
-        val accountId: String? =
-            if (!openIdToken.isNullOrBlank() && !accountConsentId.isNullOrBlank())
-                cardService.getFirstAccount(userInput.targetUrl, openIdToken, accountConsentId, userInput.clientId)
-            else null
-
-        val accountNumber: String? =
-            if (!openIdToken.isNullOrBlank() && !accountConsentId.isNullOrBlank() && accountId != null)
-                cardService.getFirstAccountNumber(userInput.targetUrl, openIdToken, accountConsentId, userInput.clientId, accountId)
-            else null
-
-        val cardId: String? =
-            if (!openIdToken.isNullOrBlank() && !accountConsentId.isNullOrBlank() && accountNumber != null)
-                cardService.getFirstCard(userInput.targetUrl, openIdToken, accountConsentId, userInput.clientId, accountNumber)
-            else null
 
         val semaphore = Semaphore(userInput.maxConcurrency)
 
@@ -96,41 +83,37 @@ class ApiScanService(
                 val operations = extractOperations(pathItem)
                 for ((method, operation) in operations) {
                     if (operation == null) continue
-                    val combinedParams: List<Parameter> = (pathItem.parameters ?: emptyList()) + (operation.parameters ?: emptyList())
 
-                    val url = buildUrlForScan(
-                        pathTemplate, combinedParams, userInput,
-                        accountId, accountNumber, cardId,
-                        paymentConsentId, productConsentId, productRequestId
-                    )
+                    val combinedParams: List<Parameter> =
+                        (pathItem.parameters ?: emptyList()) + (operation.parameters ?: emptyList())
 
-                    jobs.add(async<Unit> {
+                    val url = buildUrlFromPath(userInput.targetUrl, pathTemplate, combinedParams)
+
+                    jobs.add(async {
                         semaphore.withPermit {
                             delay(userInput.politenessDelayMs.toLong())
                             try {
-                                val requestBody = generateValidRequestBody(operation, userInput, accountNumber)
+                                val body = generateValidRequestBody(operation, userInput)
+                                performRequestWithAuth(url, method, body, openIdToken, issues, userInput.useGostGateway)
 
-                                performRequestWithAuthAndBody(
-                                    url, method, requestBody, openIdToken, accountConsentId, issues, userInput.useGostGateway
-                                )
+                                // Вызов плагинов
+                                plugins.forEach { plugin ->
+                                    plugin.runCheck(url, method, operation, issues)
+                                }
 
-                                builtinPlugin.runChecksByFlagsIfEnabled(
-                                    url,
-                                    method,
-                                    operation,
-                                    issues,
-                                    userInput
-                                )
                             } catch (ex: Exception) {
                                 issues.add(Issue("SCAN_ERROR", Severity.MEDIUM, "Ошибка при запросе $url: ${ex.message}"))
                             }
+                            Unit  // ← явное возвращение Unit
                         }
                     })
+
                 }
             }
             jobs.awaitAll()
         }
 
+        // Глобальные проверки
         if (userInput.enableRateLimiting || userInput.enableSensitiveFiles || userInput.enablePublicSwagger) {
             runGlobalChecks(client, userInput.targetUrl, issues, userInput)
         }
@@ -146,7 +129,7 @@ class ApiScanService(
                 uniqueEndpoints = pathsMap.size
             ),
             issues = issues,
-            accountIds = listOfNotNull(accountId)
+            accountIds = emptyList()
         )
     }
 
@@ -161,28 +144,23 @@ class ApiScanService(
             accountIds = emptyList()
         )
 
-    private fun generateValidRequestBody(
-        operation: io.swagger.v3.oas.models.Operation,
-        userInput: UserInput,
-        accountNumber: String?
-    ): JsonNode? {
+    private fun generateValidRequestBody(operation: io.swagger.v3.oas.models.Operation, userInput: UserInput): JsonNode? {
         val schema = operation.requestBody?.content?.values?.firstOrNull()?.schema ?: return null
-        return buildSampleJsonFromSchema(schema, userInput, accountNumber)
+        return buildSampleJsonFromSchema(schema, userInput)
     }
 
-    private suspend fun performRequestWithAuthAndBody(
+    private suspend fun performRequestWithAuth(
         url: String,
         method: String,
         body: JsonNode?,
         token: String?,
-        consentId: String?,
         issues: MutableList<Issue>,
         useGostGateway: Boolean
     ) {
         try {
             if (useGostGateway) {
-                val accessToken = token ?: throw IllegalStateException("Token required for GOST gateway")
-                val result = executeGostCurl(url, method, accessToken, body)
+                if (token.isNullOrBlank()) return
+                executeGostCurl(url, method, token, body)
             } else {
                 client.request(url) {
                     this.method = HttpMethod.parse(method)
@@ -191,7 +169,6 @@ class ApiScanService(
                         setBody(body.toString())
                     }
                     if (!token.isNullOrBlank()) header("Authorization", "Bearer $token")
-                    if (!consentId.isNullOrBlank()) header("X-Consent-Id", consentId)
                 }
             }
         } catch (ex: ClientRequestException) {
@@ -201,69 +178,21 @@ class ApiScanService(
         }
     }
 
-    private fun buildUrlForScan(
-        pathTemplate: String,
-        params: List<Parameter>,
-        userInput: UserInput,
-        accountId: String?,
-        accountNumber: String?,
-        cardId: String?,
-        paymentConsentId: String?,
-        productConsentId: String?,
-        productRequestId: String?
-    ): String {
-        var url = pathTemplate
-
-        if (url.contains("{account_id}") && accountId != null)
-            url = url.replace("{account_id}", accountId)
-
-        if (url.contains("{consent_id}")) {
-            url = when {
-                url.startsWith("/payment-consents") && paymentConsentId != null ->
-                    url.replace("{consent_id}", paymentConsentId)
-
-                url.startsWith("/product-agreement-consents") && productConsentId != null ->
-                    url.replace("{consent_id}", productConsentId)
-
-                else -> url
-            }
-        }
-
-        if (url.contains("{id}") && productRequestId != null)
-            url = url.replace("{id}", productRequestId)
-
-        if (url.startsWith("/product-agreements"))
-            url += "?client_id=${userInput.clientId}-1"
-
-        return buildUrlFromPath(userInput.targetUrl, url, params).removeQueryParam("client_id")
-    }
-
-    private fun buildSampleJsonFromSchema(
-        schema: io.swagger.v3.oas.models.media.Schema<*>,
-        userInput: UserInput,
-        accountNumber: String?
-    ): JsonNode {
-        val node: ObjectNode = mapper.createObjectNode()
-
+    private fun buildSampleJsonFromSchema(schema: io.swagger.v3.oas.models.media.Schema<*>, userInput: UserInput): JsonNode {
+        val node = mapper.createObjectNode()
         schema.properties?.forEach { (key, prop) ->
-            when {
-                prop.type == "string" -> {
-                    node.put(
-                        key,
-                        when (key.lowercase()) {
-                            "client_id" -> userInput.clientId
-                            "bank" -> userInput.requestingBank
-                            "account_number" -> accountNumber ?: "00000000"
-                            else -> "sample"
-                        }
-                    )
-                }
-                prop.type == "integer" -> node.put(key, 1)
-                prop.type == "number" -> node.put(key, 1.0)
-                prop.type == "boolean" -> node.put(key, true)
-                prop.type == "object" ->
-                    node.set<JsonNode>(key, buildSampleJsonFromSchema(prop, userInput, accountNumber))
-
+            when (prop.type) {
+                "string" -> node.put(
+                    key, when (key.lowercase()) {
+                        "client_id" -> userInput.clientId
+                        "bank" -> userInput.requestingBank
+                        else -> "sample"
+                    }
+                )
+                "integer" -> node.put(key, 1)
+                "number" -> node.put(key, 1.0)
+                "boolean" -> node.put(key, true)
+                "object" -> node.set<JsonNode>(key, buildSampleJsonFromSchema(prop, userInput))
                 else -> node.put(key, "sample")
             }
         }
@@ -271,31 +200,28 @@ class ApiScanService(
     }
 
     private fun executeGostCurl(url: String, method: String, token: String, body: JsonNode?): String {
-        val command = mutableListOf(
+        val cmd = mutableListOf(
             "curl", "-v", "-k",
             "-X", method,
             "-H", "Authorization: Bearer $token",
             "-H", "Content-Type: application/json",
             url
         )
-        if (body != null) {
-            command.addAll(listOf("-d", body.toString()))
-        }
+        if (body != null) cmd.addAll(listOf("-d", body.toString()))
 
-        val process = ProcessBuilder(command).start()
+        val process = ProcessBuilder(cmd).start()
         val result = StringBuilder()
-
         BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
-            var line: String?
-            while (reader.readLine().also { line = it } != null) {
-                result.append(line).append("\n")
-            }
+            reader.forEachLine { result.append(it).append("\n") }
         }
         process.waitFor()
         return result.toString()
     }
 }
 
+// ----------------------
+// ГЛОБАЛЬНЫЕ ПРОВЕРКИ
+// ----------------------
 suspend fun runGlobalChecks(
     client: io.ktor.client.HttpClient,
     baseUrl: String,
