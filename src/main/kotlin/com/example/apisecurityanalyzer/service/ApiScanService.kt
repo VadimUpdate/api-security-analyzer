@@ -24,7 +24,8 @@ import java.time.Instant
 class ApiScanService(
     private val clientProvider: ClientProvider,
     private val authService: AuthService,
-    private val consentService: ConsentService
+    private val consentService: ConsentService,
+    private val fuzzerService: FuzzerService
 ) {
 
     private val mapper = jacksonObjectMapper()
@@ -60,19 +61,23 @@ class ApiScanService(
             null
         }
 
+        // Получение consents через create*Consent
+        val accountConsentId = consentService.createAccountConsent(userInput, openIdToken ?: "", issues)
+        val paymentConsentId = consentService.createPaymentConsent(userInput, openIdToken ?: "", issues)
+        val productConsentId = consentService.createProductAgreementConsent(userInput, openIdToken ?: "", issues).first
+
         // ---------------------------
         // ПЛАГИНЫ
         // ---------------------------
         val plugins: List<CheckerPlugin> = listOf(
             BrokenAuthCheckerPlugin(clientProvider, consentService, userInput, openIdToken ?: ""),
-            BOLACheckerPlugin(clientProvider, consentService, userInput, openIdToken ?: ""),
+            BOLACheckerPlugin(clientProvider, consentService, fuzzerService, userInput, openIdToken ?: "",
+                consentService.selectConsentForPath("", paymentConsentId, productConsentId, accountConsentId) ?: ""),
             IDORCheckerPlugin(clientProvider, consentService, userInput, openIdToken ?: ""),
             MassAssignmentCheckerPlugin(clientProvider, consentService, userInput),
             InjectionCheckerPlugin(clientProvider, consentService, userInput),
             SensitiveFilesCheckerPlugin(clientProvider, consentService, userInput, openIdToken ?: "")
         )
-
-
 
         val semaphore = Semaphore(userInput.maxConcurrency)
 
@@ -96,15 +101,22 @@ class ApiScanService(
                                 val body = generateValidRequestBody(operation, userInput)
                                 performRequestWithAuth(url, method, body, openIdToken, issues, userInput.useGostGateway)
 
-                                // Вызов плагинов
                                 plugins.forEach { plugin ->
                                     plugin.runCheck(url, method, operation, issues)
                                 }
 
+                                fuzzerService.runFuzzing(
+                                    url,
+                                    operation,
+                                    userInput.clientId,
+                                    userInput.clientSecret,
+                                    consentService.selectConsentForPath(url, paymentConsentId, productConsentId, accountConsentId) ?: "",
+                                    issues
+                                )
                             } catch (ex: Exception) {
                                 issues.add(Issue("SCAN_ERROR", Severity.MEDIUM, "Ошибка при запросе $url: ${ex.message}"))
                             }
-                            Unit  // ← явное возвращение Unit
+                            Unit // <- добавить здесь
                         }
                     })
 
@@ -118,7 +130,7 @@ class ApiScanService(
             runGlobalChecks(client, userInput.targetUrl, issues, userInput)
         }
 
-        return@runBlocking ScanReport(
+        ScanReport(
             specUrl = userInput.specUrl,
             targetUrl = userInput.targetUrl,
             timestamp = Instant.now(),

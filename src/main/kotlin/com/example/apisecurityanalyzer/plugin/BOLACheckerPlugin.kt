@@ -5,14 +5,17 @@ import com.example.apianalyzer.model.Severity
 import com.example.apianalyzer.model.UserInput
 import com.example.apianalyzer.service.ClientProvider
 import com.example.apianalyzer.service.ConsentService
+import com.example.apianalyzer.service.FuzzerService
 import io.ktor.client.statement.*
 import io.swagger.v3.oas.models.Operation
 
 class BOLACheckerPlugin(
     private val clientProvider: ClientProvider,
     private val consentService: ConsentService,
+    private val fuzzerService: FuzzerService,
     private val userInput: UserInput,
-    private val bankToken: String
+    private val bankToken: String,
+    private val consentId: String
 ) : CheckerPlugin {
 
     override val name: String = "UnifiedAttackChecker"
@@ -46,7 +49,7 @@ class BOLACheckerPlugin(
             operation = operation,
             userInput = userInput,
             bankToken = bankToken,
-            consentId = null
+            consentId = consentId
         )
 
         val bolaCtx = cleanCtx.copy(headers = cleanCtx.headers.toMutableMap().apply {
@@ -69,6 +72,17 @@ class BOLACheckerPlugin(
                     )
                 )
             }
+        }
+
+        if (userInput.enableFuzzing) {
+            fuzzerService.runFuzzing(
+                url = url,
+                operation = operation,
+                clientId = userInput.clientId,
+                clientSecret = userInput.clientSecret,
+                consentId = consentId,
+                issues = issues
+            )
         }
     }
 
@@ -109,18 +123,16 @@ class BOLACheckerPlugin(
         )
 
         for (p in payloads) {
-            val baseCtx = consentService.buildRequestContext(
+            val ctx = consentService.buildRequestContext(
                 fullUrl = url,
                 method = method,
                 operation = operation,
                 userInput = userInput,
                 bankToken = bankToken,
-                consentId = null
-            )
+                consentId = consentId
+            ).copy(body = p)
 
-            val ctx = baseCtx.copy(body = p)
             val resp = consentService.executeContext(ctx)
-
             resp?.let {
                 val code = it.status.value
                 val body = runCatching { it.bodyAsText() }.getOrElse { "" }
@@ -155,18 +167,16 @@ class BOLACheckerPlugin(
             }
         """.trimIndent()
 
-        val baseCtx = consentService.buildRequestContext(
+        val ctx = consentService.buildRequestContext(
             fullUrl = url,
             method = method,
             operation = operation,
             userInput = userInput,
             bankToken = bankToken,
-            consentId = null
-        )
+            consentId = consentId
+        ).copy(body = maliciousBody)
 
-        val ctx = baseCtx.copy(body = maliciousBody)
         val resp = consentService.executeContext(ctx)
-
         resp?.let {
             val body = runCatching { it.bodyAsText() }.getOrElse { "" }
             if (body.contains("superuser", true) || body.contains("isAdmin", true) || body.contains("role", true)) {
@@ -197,7 +207,7 @@ class BOLACheckerPlugin(
             operation = operation,
             userInput = userInput,
             bankToken = bankToken,
-            consentId = null
+            consentId = consentId
         )
 
         val resp = consentService.executeContext(ctx)
@@ -232,7 +242,7 @@ class BOLACheckerPlugin(
             operation = operation,
             userInput = userInput,
             bankToken = bankToken,
-            consentId = null
+            consentId = consentId
         )
 
         val ctx = baseCtx.copy(headers = baseCtx.headers.toMutableMap().apply {
@@ -257,6 +267,7 @@ class BOLACheckerPlugin(
         }
     }
 
+
     private suspend fun runBrokenAuth(
         url: String,
         method: String,
@@ -272,7 +283,7 @@ class BOLACheckerPlugin(
                 operation = operation,
                 userInput = userInput,
                 bankToken = t,
-                consentId = null
+                consentId = consentId
             )
 
             val resp = consentService.executeContext(ctx)
@@ -306,7 +317,7 @@ class BOLACheckerPlugin(
             operation = operation,
             userInput = userInput,
             bankToken = bankToken,
-            consentId = null
+            consentId = consentId
         )
 
         var okCount = 0
