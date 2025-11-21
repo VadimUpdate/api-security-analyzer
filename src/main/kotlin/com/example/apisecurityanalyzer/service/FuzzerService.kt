@@ -7,13 +7,15 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import io.ktor.client.request.*
 import io.swagger.v3.oas.models.Operation
 import io.swagger.v3.oas.models.parameters.HeaderParameter
 import io.swagger.v3.oas.models.parameters.QueryParameter
-import kotlinx.coroutines.*
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import org.springframework.stereotype.Service
 import kotlin.random.Random
-import io.ktor.client.request.*
 
 @Service
 class FuzzerService(
@@ -35,59 +37,72 @@ class FuzzerService(
         "false"
     )
 
-    // Количество запросов на каждый эндпоинт/тип ввода (query/header/body)
-    var requestsPerVector: Int = 5
+    var requestsPerVector: Int = 3
+
+    suspend fun runFuzzingPublic(
+        url: String,
+        operation: Operation,
+        httpMethod: HttpMethod,
+        clientId: String,
+        clientSecret: String,
+        consentId: String,
+        issues: MutableList<Issue>
+    ) {
+        runFuzzing(url, operation, httpMethod, clientId, clientSecret, consentId, issues)
+    }
 
     suspend fun runFuzzingForAllEndpoints(
-        operations: List<Pair<String, Operation>>,
+        operations: List<Triple<String, String, Operation>>,
         clientId: String,
         clientSecret: String,
         consentId: String
     ): List<Issue> {
         val allIssues = mutableListOf<Issue>()
         coroutineScope {
-            operations.map { (url, op) ->
+            operations.map { (url, method, op) ->
                 async {
-                    runFuzzing(url, op, clientId, clientSecret, consentId, allIssues)
+                    val httpMethod = extractMethod(method)
+                    runFuzzing(url, op, httpMethod, clientId, clientSecret, consentId, allIssues)
                 }
             }.awaitAll()
         }
         return allIssues
     }
 
-    suspend fun runFuzzing(
+    private suspend fun runFuzzing(
         url: String,
         operation: Operation,
+        httpMethod: HttpMethod,
         clientId: String,
         clientSecret: String,
         consentId: String,
         issues: MutableList<Issue>
     ) {
-        val method = operation.operationId ?: "GET"
         val payloads = generatePayloads()
 
-        // --- fuzz query parameters ---
+        // QUERY
         operation.parameters
             ?.filterIsInstance<QueryParameter>()
             ?.forEach { param ->
                 repeat(requestsPerVector) {
                     val payload = payloads.random()
-                    val fuzzedUrl = appendQuery(url, param.name, payload)
+                    val fuzzed = appendQuery(url, param.name, payload)
                     sendFuzzedRequest(
-                        fuzzedUrl,
-                        method,
+                        fuzzed,
+                        httpMethod,
                         null,
                         clientId,
                         clientSecret,
                         consentId,
                         issues,
                         "query:${param.name}",
-                        payload
+                        payload,
+                        null
                     )
                 }
             }
 
-        // --- fuzz headers ---
+        // HEADERS
         operation.parameters
             ?.filterIsInstance<HeaderParameter>()
             ?.forEach { param ->
@@ -95,36 +110,37 @@ class FuzzerService(
                     val payload = payloads.random()
                     sendFuzzedRequest(
                         url,
-                        method,
-                        body = null,
-                        clientId = clientId,
-                        clientSecret = clientSecret,
-                        consentId = consentId,
-                        issues = issues,
-                        vector = "header:${param.name}",
-                        payload = payload,
-                        extraHeader = param.name to payload
+                        httpMethod,
+                        null,
+                        clientId,
+                        clientSecret,
+                        consentId,
+                        issues,
+                        "header:${param.name}",
+                        payload,
+                        param.name to payload
                     )
                 }
             }
 
-        // --- fuzz body JSON ---
+        // BODY JSON
         val bodySchema = operation.requestBody?.content?.values?.firstOrNull()?.schema
         if (bodySchema != null) {
-            val baseBody = buildSampleJsonFromSchema(bodySchema)
+            val baseJson = buildSampleJsonFromSchema(bodySchema)
             repeat(requestsPerVector) {
                 val payload = payloads.random()
-                val fuzzedBody = mutateJson(baseBody.deepCopy(), payload)
+                val fuzzedBody = mutateJsonFull(baseJson.deepCopy(), payload)
                 sendFuzzedRequest(
                     url,
-                    method,
-                    body = fuzzedBody,
-                    clientId = clientId,
-                    clientSecret = clientSecret,
-                    consentId = consentId,
-                    issues = issues,
-                    vector = "body",
-                    payload = payload
+                    httpMethod,
+                    fuzzedBody,
+                    clientId,
+                    clientSecret,
+                    consentId,
+                    issues,
+                    "body",
+                    payload,
+                    null
                 )
             }
         }
@@ -132,8 +148,8 @@ class FuzzerService(
 
     private suspend fun sendFuzzedRequest(
         url: String,
-        method: String,
-        body: JsonNode?,
+        method: HttpMethod,
+        body: JsonNode? = null,
         clientId: String,
         clientSecret: String,
         consentId: String,
@@ -142,19 +158,18 @@ class FuzzerService(
         payload: String,
         extraHeader: Pair<String, String>? = null
     ) {
-        try {
-            // --- Логируем перед запросом ---
-            println("=== FUZZ REQUEST ===")
-            println("URL: $url")
-            println("METHOD: $method")
-            println("VECTOR: $vector")
-            println("PAYLOAD: $payload")
-            extraHeader?.let { println("EXTRA HEADER: ${it.first}=${it.second}") }
-            println("BODY: ${body?.toString() ?: "<empty>"}")
-            println("===================")
+        println("=== FUZZ REQUEST ===")
+        println("URL: $url")
+        println("METHOD: $method")
+        println("VECTOR: $vector")
+        println("PAYLOAD: $payload")
+        extraHeader?.let { println("EXTRA HEADER: ${it.first}=${it.second}") }
+        println("BODY: ${body?.toPrettyString() ?: "<empty>"}")
+        println("====================")
 
-            val resp: HttpResponse = authService.performRequestWithAuth(
-                method = HttpMethod.parse(method),
+        try {
+            val response: HttpResponse = authService.performRequestWithAuth(
+                method = method,
                 url = url,
                 clientId = clientId,
                 clientSecret = clientSecret,
@@ -162,66 +177,79 @@ class FuzzerService(
                 issues = issues,
                 bodyBlock = {
                     extraHeader?.let { header(it.first, it.second) }
-                    body?.let { setBody(it.toString()) }
+                    body?.let {
+                        setBody(mapper.writeValueAsString(it))
+                        contentType(ContentType.Application.Json)
+                    }
                 }
             )
 
-            // --- server error capture ---
-            if (resp.status.value >= 500) {
-                val bodyText = runCatching { resp.bodyAsText() }.getOrElse { "" }
+            val bodyText = runCatching { response.bodyAsText() }.getOrElse { "" }
+
+            // --- Логируем ВСЕ >=500 ---
+            if (response.status.value >= 500) {
                 issues.add(
                     Issue(
                         type = "SERVER_ERROR",
                         severity = Severity.CRITICAL,
-                        description = "Сервер вернул ${resp.status.value} при фуззинге ($vector).",
+                        description = "Сервер вернул ${response.status.value} при фуззинге ($vector)",
                         url = url,
-                        method = method,
-                        evidence = "Payload: $payload\nResponse body: $bodyText",
-                        recommendation = "Проверить обработку ошибок на сервере и защиту от фуззинга."
+                        method = method.value,
+                        evidence = "payload=$payload\nresponse=$bodyText",
+                        recommendation = "Проверить обработку ошибок на сервере."
                     )
                 )
             }
 
-            // --- отчет по фуззу ---
+            // Нормальная запись результата фуззинга
             issues.add(
                 Issue(
-                    "FUZZ_${vector.uppercase()}",
-                    if (resp.status.isSuccess()) Severity.LOW else Severity.MEDIUM,
-                    "Fuzz payload '$payload' отправлен, статус ${resp.status.value}",
-                    url,
-                    method,
-                    "payload=$payload"
+                    type = "FUZZ_${vector.uppercase()}",
+                    severity = if (response.status.isSuccess()) Severity.LOW else Severity.MEDIUM,
+                    description = "Fuzz payload '$payload' → HTTP ${response.status.value}",
+                    url = url,
+                    method = method.value,
+                    evidence = "payload=$payload"
                 )
             )
 
-        } catch (e: Exception) {
+        } catch (ex: Exception) {
+
+            // Игнорируем ошибки "Требуется токен/consentId..." (не добавляем issue)
+            val msg = ex.message ?: ""
+            if (msg.contains("Требуется токен", ignoreCase = true) ||
+                msg.contains("consentId", ignoreCase = true)
+            ) {
+                return
+            }
+
+            // Остальные исключения логируем
             issues.add(
                 Issue(
-                    "FUZZ_EXCEPTION",
-                    Severity.HIGH,
-                    "Exception during fuzzing",
-                    url,
-                    method,
-                    "${e.message} | payload=$payload"
+                    type = "FUZZ_EXCEPTION",
+                    severity = Severity.HIGH,
+                    description = "Exception during fuzzing",
+                    url = url,
+                    method = method.value,
+                    evidence = "${ex.message} | payload=$payload"
                 )
             )
         }
     }
 
-
     private fun generatePayloads(): List<String> {
-        val result = mutableListOf<String>()
+        val r = mutableListOf<String>()
         for (p in basePayloads) {
-            result += p
-            result += mutateDeleteFragment(p)
-            result += mutateInvertFragment(p)
-            result += mutateDuplicateFragment(p)
-            result += mutateBinaryBlob(p)
-            result += p.reversed()
-            result += p.uppercase()
-            result += p.lowercase()
+            r += p
+            r += mutateDeleteFragment(p)
+            r += mutateInvertFragment(p)
+            r += mutateDuplicateFragment(p)
+            r += mutateBinaryBlob(p)
+            r += p.reversed()
+            r += p.uppercase()
+            r += p.lowercase()
         }
-        return result.distinct()
+        return r.distinct()
     }
 
     private fun mutateDeleteFragment(input: String): String {
@@ -250,39 +278,45 @@ class FuzzerService(
     private fun mutateBinaryBlob(input: String): String {
         val blob = ByteArray(16) { Random.nextInt(0, 255).toByte() }
         val blobStr = blob.joinToString("") { "\\x" + it.toUByte().toString(16).padStart(2, '0') }
-        return "$input$blobStr"
+        return input + blobStr
     }
-
-    private fun appendQuery(url: String, key: String, value: String): String {
-        return if (url.contains("?")) "$url&$key=${encodeURLParameter(value)}"
-        else "$url?$key=${encodeURLParameter(value)}"
-    }
-
-    private fun encodeURLParameter(v: String): String =
-        java.net.URLEncoder.encode(v, Charsets.UTF_8)
 
     private fun buildSampleJsonFromSchema(schema: io.swagger.v3.oas.models.media.Schema<*>): JsonNode {
         val node = mapper.createObjectNode()
-        schema.properties?.forEach { (key, prop) ->
-            when (prop.type) {
-                "string" -> node.put(key, "sample")
-                "integer" -> node.put(key, 1)
-                "number" -> node.put(key, 1.0)
-                "boolean" -> node.put(key, true)
-                "object" -> node.set<JsonNode>(key, buildSampleJsonFromSchema(prop))
-                else -> node.put(key, "sample")
+        schema.properties?.forEach { (k, v) ->
+            when (v.type) {
+                "string" -> node.put(k, "sample")
+                "integer" -> node.put(k, 1)
+                "number" -> node.put(k, 1.0)
+                "boolean" -> node.put(k, true)
+                "object" -> node.set<JsonNode>(k, buildSampleJsonFromSchema(v))
+                else -> node.put(k, "sample")
             }
         }
         return node
     }
 
-    private fun mutateJson(root: JsonNode, payload: String): JsonNode {
+    private fun mutateJsonFull(root: JsonNode, payload: String): JsonNode {
         if (!root.isObject) return root
         val obj = root.deepCopy<ObjectNode>()
-        val fields = obj.fieldNames().asSequence().toList()
-        if (fields.isEmpty()) return obj
-        val target = fields.random()
-        obj.put(target, payload)
+        obj.fieldNames().forEachRemaining { k ->
+            obj.put(k, payload)
+        }
         return obj
+    }
+
+    private fun appendQuery(url: String, key: String, value: String): String {
+        val encoded = java.net.URLEncoder.encode(value, Charsets.UTF_8)
+        return if ("?" in url) "$url&$key=$encoded" else "$url?$key=$encoded"
+    }
+
+    private fun extractMethod(httpMethod: String): HttpMethod = when (httpMethod.uppercase()) {
+        "GET" -> HttpMethod.Get
+        "POST" -> HttpMethod.Post
+        "PUT" -> HttpMethod.Put
+        "DELETE" -> HttpMethod.Delete
+        "PATCH" -> HttpMethod.Patch
+        "OPTIONS" -> HttpMethod.Options
+        else -> HttpMethod.Get
     }
 }

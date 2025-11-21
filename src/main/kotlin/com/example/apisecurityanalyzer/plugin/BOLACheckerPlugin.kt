@@ -7,6 +7,7 @@ import com.example.apianalyzer.service.ClientProvider
 import com.example.apianalyzer.service.ConsentService
 import com.example.apianalyzer.service.FuzzerService
 import io.ktor.client.statement.*
+import io.ktor.http.*
 import io.swagger.v3.oas.models.Operation
 
 class BOLACheckerPlugin(
@@ -26,7 +27,9 @@ class BOLACheckerPlugin(
         operation: Operation,
         issues: MutableList<Issue>
     ) {
-        runBola(url, method, operation, issues)
+        val httpMethod = convertToHttpMethod(method)
+
+        runBola(url, httpMethod, operation, issues)
         runIDOR(url, method, operation, issues)
         runInjection(url, method, operation, issues)
         runMassAssignment(url, method, operation, issues)
@@ -37,47 +40,61 @@ class BOLACheckerPlugin(
         runDebugExposure(url, method, operation, issues)
     }
 
+    private fun convertToHttpMethod(method: String): HttpMethod =
+        when (method.uppercase()) {
+            "GET" -> HttpMethod.Get
+            "POST" -> HttpMethod.Post
+            "PUT" -> HttpMethod.Put
+            "DELETE" -> HttpMethod.Delete
+            "PATCH" -> HttpMethod.Patch
+            "OPTIONS" -> HttpMethod.Options
+            else -> HttpMethod.Get
+        }
+
+    // ---------------------- BOLA ----------------------
     private suspend fun runBola(
         url: String,
-        method: String,
+        httpMethod: HttpMethod,
         operation: Operation,
         issues: MutableList<Issue>
     ) {
         val cleanCtx = consentService.buildRequestContext(
             fullUrl = url,
-            method = method,
+            method = httpMethod.value,
             operation = operation,
             userInput = userInput,
             bankToken = bankToken,
             consentId = consentId
         )
 
-        val bolaCtx = cleanCtx.copy(headers = cleanCtx.headers.toMutableMap().apply {
-            remove("X-Consent-Id")
-            remove("X-Product-Agreement-Consent-Id")
-        })
+        val bolaCtx = cleanCtx.copy(
+            headers = cleanCtx.headers.toMutableMap().apply {
+                remove("X-Consent-Id")
+                remove("X-Product-Agreement-Consent-Id")
+                remove("X-Account-Consent-Id")
+            }
+        )
 
         val response: HttpResponse? = consentService.executeContext(bolaCtx)
-        response?.let {
-            val code = it.status.value
-            if (code in 200..299) {
-                issues.add(
-                    Issue(
-                        type = "BOLA",
-                        severity = Severity.HIGH,
-                        description = "Доступ к ресурсу возможен без согласия пользователя (consent).",
-                        url = url,
-                        method = method,
-                        evidence = "HTTP $code. Рекомендуется проверять владельца ресурса на сервере и блокировать запрос без соответствующего consent."
-                    )
+        if (response != null && response.status.value in 200..299) {
+            issues.add(
+                Issue(
+                    type = "BOLA",
+                    severity = Severity.HIGH,
+                    description = "Доступ к ресурсу возможен без действительного consent.",
+                    url = url,
+                    method = httpMethod.value,
+                    evidence = null,
+                    recommendation = "Проверять принадлежность ресурса пользователю и обязательность consent."
                 )
-            }
+            )
         }
 
         if (userInput.enableFuzzing) {
-            fuzzerService.runFuzzing(
+            fuzzerService.runFuzzingPublic(
                 url = url,
                 operation = operation,
+                httpMethod = httpMethod,
                 clientId = userInput.clientId,
                 clientSecret = userInput.clientSecret,
                 consentId = consentId,
@@ -86,28 +103,30 @@ class BOLACheckerPlugin(
         }
     }
 
+    // ---------------------- IDOR ----------------------
     private fun runIDOR(
         url: String,
         method: String,
         operation: Operation,
         issues: MutableList<Issue>
     ) {
-        val idPattern = Regex("/[A-Za-z-_]*/\\d+(/|$)")
-        if (url.contains(idPattern)) {
+        val idPattern = Regex("/\\d+(/|$)")
+        if (idPattern.containsMatchIn(url)) {
             issues.add(
                 Issue(
                     type = "IDOR",
                     severity = Severity.LOW,
-                    description = "Обнаружен числовой идентификатор ресурса. Возможна манипуляция ID для доступа к чужим данным.",
+                    description = "Эндпоинт содержит числовой идентификатор (ID), возможна манипуляция ID.",
                     url = url,
                     method = method,
-                    evidence = "Проверить, может ли другой пользователь получить данные по этому ID.",
-                    recommendation = "Добавить проверку владельца ресурса на сервере, не доверять ID из запроса."
+                    evidence = "Обнаружен path-параметр вида /123/",
+                    recommendation = "Проверять владельца ресурса по токену/consent."
                 )
             )
         }
     }
 
+    // ---------------------- Injection ----------------------
     private suspend fun runInjection(
         url: String,
         method: String,
@@ -118,11 +137,11 @@ class BOLACheckerPlugin(
             "' OR '1'='1",
             "\" OR \"1\"=\"1",
             "'; DROP TABLE users; --",
-            "{\"break\":\"json\", \"x\": 1}",
-            "`shutdown now`"
+            "{ \"break\": \"json\", \"x\":1 }",
+            "`rm -rf /`"
         )
 
-        for (p in payloads) {
+        for (payload in payloads) {
             val ctx = consentService.buildRequestContext(
                 fullUrl = url,
                 method = method,
@@ -130,29 +149,29 @@ class BOLACheckerPlugin(
                 userInput = userInput,
                 bankToken = bankToken,
                 consentId = consentId
-            ).copy(body = p)
+            ).copy(body = payload)
 
             val resp = consentService.executeContext(ctx)
-            resp?.let {
-                val code = it.status.value
-                val body = runCatching { it.bodyAsText() }.getOrElse { "" }
-                if (code >= 500 || body.contains("error", true)) {
-                    issues.add(
-                        Issue(
-                            type = "Injection",
-                            severity = Severity.MEDIUM,
-                            description = "Сервер реагирует ошибками на инъекционные payload'ы, возможна уязвимость к SQL/JSON/Command инъекциям.",
-                            url = url,
-                            method = method,
-                            evidence = "Payload: $p, Response: $code/$body",
-                            recommendation = "Использовать подготовленные выражения, валидацию и экранирование входных данных."
-                        )
+            val code = resp?.status?.value ?: continue
+            val bodyText = runCatching { resp.bodyAsText() }.getOrNull() ?: ""
+
+            if (code >= 500 || "error" in bodyText.lowercase()) {
+                issues.add(
+                    Issue(
+                        type = "Injection",
+                        severity = Severity.MEDIUM,
+                        description = "Возможна инъекция: сервер дал ошибку на payload.",
+                        url = url,
+                        method = method,
+                        evidence = "Payload: $payload\nResponse: $code $bodyText",
+                        recommendation = "Внедрить строгую валидацию и экранирование данных."
                     )
-                }
+                )
             }
         }
     }
 
+    // ---------------------- Mass Assignment ----------------------
     private suspend fun runMassAssignment(
         url: String,
         method: String,
@@ -176,25 +195,25 @@ class BOLACheckerPlugin(
             consentId = consentId
         ).copy(body = maliciousBody)
 
-        val resp = consentService.executeContext(ctx)
-        resp?.let {
-            val body = runCatching { it.bodyAsText() }.getOrElse { "" }
-            if (body.contains("superuser", true) || body.contains("isAdmin", true) || body.contains("role", true)) {
-                issues.add(
-                    Issue(
-                        type = "MassAssignment",
-                        severity = Severity.HIGH,
-                        description = "Сервер принимает неожиданные поля в теле запроса.",
-                        url = url,
-                        method = method,
-                        evidence = "Ответ содержит поля: $body",
-                        recommendation = "Использовать whitelist полей для обновления, фильтровать входящие данные."
-                    )
+        val resp: HttpResponse? = consentService.executeContext(ctx)
+        val body = resp?.let { runCatching { it.bodyAsText() }.getOrNull() } ?: ""
+
+        if ("isAdmin" in body.lowercase() || "superuser" in body.lowercase() || "role" in body.lowercase()) {
+            issues.add(
+                Issue(
+                    type = "MassAssignment",
+                    severity = Severity.HIGH,
+                    description = "Сервер принял нежелательные поля.",
+                    url = url,
+                    method = method,
+                    evidence = body,
+                    recommendation = "Использовать whitelist полей на уровне DTO."
                 )
-            }
+            )
         }
     }
 
+    // ---------------------- Excessive Data Exposure ----------------------
     private suspend fun runExcessiveExposure(
         url: String,
         method: String,
@@ -211,25 +230,27 @@ class BOLACheckerPlugin(
         )
 
         val resp = consentService.executeContext(ctx)
-        val body = resp?.let { runCatching { it.bodyAsText() }.getOrElse { "" } } ?: ""
+        val body = resp?.let { runCatching { it.bodyAsText() }.getOrNull() } ?: ""
 
         val leakIndicators = listOf("password", "secret", "token", "ssn", "private", "credit", "pin")
-        val leaks = leakIndicators.filter { body.contains(it, true) }
+        val leaks = leakIndicators.filter { body.contains(it, ignoreCase = true) }
+
         if (leaks.isNotEmpty()) {
             issues.add(
                 Issue(
                     type = "DataExposure",
                     severity = Severity.HIGH,
-                    description = "Ответ содержит потенциально чувствительные данные: ${leaks.joinToString(", ")}.",
+                    description = "Ответ содержит конфиденциальные данные: ${leaks.joinToString()}.",
                     url = url,
                     method = method,
                     evidence = body,
-                    recommendation = "Маскировать PII, использовать DTO без конфиденциальных полей."
+                    recommendation = "Удалить чувствительные поля или маскировать их."
                 )
             )
         }
     }
 
+    // ---------------------- Role Tampering ----------------------
     private suspend fun runRoleTampering(
         url: String,
         method: String,
@@ -246,35 +267,33 @@ class BOLACheckerPlugin(
         )
 
         val ctx = baseCtx.copy(headers = baseCtx.headers.toMutableMap().apply {
-            put("X-User-Role", "admin")
+            this["X-User-Role"] = "admin"
         })
 
         val resp = consentService.executeContext(ctx)
-        resp?.let {
-            if (it.status.value in 200..299) {
-                issues.add(
-                    Issue(
-                        type = "RoleTampering",
-                        severity = Severity.MEDIUM,
-                        description = "Смена роли через header не заблокирована.",
-                        url = url,
-                        method = method,
-                        evidence = "X-User-Role=admin",
-                        recommendation = "Проверять роль пользователя на сервере, не доверять заголовкам."
-                    )
+        if (resp?.status?.value in 200..299) {
+            issues.add(
+                Issue(
+                    type = "RoleTampering",
+                    severity = Severity.MEDIUM,
+                    description = "Переподмена роли через заголовок разрешена.",
+                    url = url,
+                    method = method,
+                    evidence = "X-User-Role=admin",
+                    recommendation = "Не доверять заголовкам, проверять роль пользователя на сервере."
                 )
-            }
+            )
         }
     }
 
-
+    // ---------------------- Broken Auth ----------------------
     private suspend fun runBrokenAuth(
         url: String,
         method: String,
         operation: Operation,
         issues: MutableList<Issue>
     ) {
-        val badTokens = listOf("", "fake123", "Bearer WRONGTOKEN999")
+        val badTokens = listOf("", "fake123", "Bearer WRONG_TOKEN")
 
         for (t in badTokens) {
             val ctx = consentService.buildRequestContext(
@@ -287,24 +306,25 @@ class BOLACheckerPlugin(
             )
 
             val resp = consentService.executeContext(ctx)
-            resp?.let {
-                if (it.status.value in 200..299) {
-                    issues.add(
-                        Issue(
-                            type = "BrokenAuth",
-                            severity = Severity.HIGH,
-                            description = "Эндпоинт принимает неверный или пустой токен.",
-                            url = url,
-                            method = method,
-                            evidence = "Token=$t",
-                            recommendation = "Инвалидировать неправильные токены, использовать короткий TTL и refresh tokens."
-                        )
+            val code = resp?.status?.value ?: continue
+
+            if (code in 200..299) {
+                issues.add(
+                    Issue(
+                        type = "BrokenAuth",
+                        severity = Severity.HIGH,
+                        description = "Эндпоинт принимает некорректный или пустой токен.",
+                        url = url,
+                        method = method,
+                        evidence = "Token=\"$t\"",
+                        recommendation = "Валидация токена должна блокировать такие запросы."
                     )
-                }
+                )
             }
         }
     }
 
+    // ---------------------- Rate Limit Test ----------------------
     private suspend fun runRateLimit(
         url: String,
         method: String,
@@ -320,37 +340,38 @@ class BOLACheckerPlugin(
             consentId = consentId
         )
 
-        var okCount = 0
+        var ok = 0
         var tooMany = 0
 
         repeat(5) {
             val resp = consentService.executeContext(ctx)
-            val code = resp?.status?.value ?: -1
+            val code = resp?.status?.value ?: return@repeat
             if (code == 429) tooMany++
-            if (code in 200..299) okCount++
+            if (code in 200..299) ok++
         }
 
-        if (tooMany == 0 && okCount >= 5) {
+        if (tooMany == 0 && ok >= 5) {
             issues.add(
                 Issue(
                     type = "RateLimit",
                     severity = Severity.LOW,
-                    description = "Нет видимых признаков rate limiting.",
+                    description = "Нет заметных признаков rate limiting.",
                     url = url,
                     method = method,
-                    recommendation = "Рассмотреть введение ограничений на количество запросов с одного пользователя/IP."
+                    recommendation = "Добавить ограничения на количество запросов."
                 )
             )
         }
     }
 
+    // ---------------------- Debug Exposure ----------------------
     private fun runDebugExposure(
         url: String,
         method: String,
         operation: Operation,
         issues: MutableList<Issue>
     ) {
-        if (url.contains("debug", true) || url.contains("internal", true)) {
+        if ("debug" in url.lowercase() || "internal" in url.lowercase()) {
             issues.add(
                 Issue(
                     type = "DebugEndpoint",
@@ -358,7 +379,7 @@ class BOLACheckerPlugin(
                     description = "Обнаружен debug/internal endpoint.",
                     url = url,
                     method = method,
-                    recommendation = "Отключить публичный доступ к debug/internal endpoint, ограничить доступ через firewall или VPN."
+                    recommendation = "Закрыть публичный доступ к debug/internal endpoint."
                 )
             )
         }

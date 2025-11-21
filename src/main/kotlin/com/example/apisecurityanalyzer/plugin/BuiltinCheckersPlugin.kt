@@ -85,6 +85,9 @@ class BuiltinCheckersPlugin(
         operation: Operation,
         issues: MutableList<Issue>
     ) {
+        // Если все флаги отключены, пропускаем выполнение
+        if (checkers.isEmpty()) return
+
         for (checker in checkers) {
             checker.runCheck(url, method, operation, issues)
         }

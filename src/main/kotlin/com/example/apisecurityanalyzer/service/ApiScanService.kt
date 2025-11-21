@@ -71,8 +71,14 @@ class ApiScanService(
         // ---------------------------
         val plugins: List<CheckerPlugin> = listOf(
             BrokenAuthCheckerPlugin(clientProvider, consentService, userInput, openIdToken ?: ""),
-            BOLACheckerPlugin(clientProvider, consentService, fuzzerService, userInput, openIdToken ?: "",
-                consentService.selectConsentForPath("", paymentConsentId, productConsentId, accountConsentId) ?: ""),
+            BOLACheckerPlugin(
+                clientProvider,
+                consentService,
+                fuzzerService,
+                userInput,
+                openIdToken ?: "",
+                consentService.selectConsentForPath("", paymentConsentId, productConsentId, accountConsentId) ?: ""
+            ),
             IDORCheckerPlugin(clientProvider, consentService, userInput, openIdToken ?: ""),
             MassAssignmentCheckerPlugin(clientProvider, consentService, userInput),
             InjectionCheckerPlugin(clientProvider, consentService, userInput),
@@ -86,37 +92,39 @@ class ApiScanService(
 
             for ((pathTemplate, pathItem) in pathsMap) {
                 val operations = extractOperations(pathItem)
-                for ((method, operation) in operations) {
+                for ((methodStr, operation) in operations) {
                     if (operation == null) continue
 
                     val combinedParams: List<Parameter> =
                         (pathItem.parameters ?: emptyList()) + (operation.parameters ?: emptyList())
 
                     val url = buildUrlFromPath(userInput.targetUrl, pathTemplate, combinedParams)
+                    val httpMethod = HttpMethod.parse(methodStr)
 
                     jobs.add(async {
                         semaphore.withPermit {
                             delay(userInput.politenessDelayMs.toLong())
                             try {
                                 val body = generateValidRequestBody(operation, userInput)
-                                performRequestWithAuth(url, method, body, openIdToken, issues, userInput.useGostGateway)
+                                performRequestWithAuth(url, methodStr, body, openIdToken, issues, userInput.useGostGateway)
 
                                 plugins.forEach { plugin ->
-                                    plugin.runCheck(url, method, operation, issues)
+                                    plugin.runCheck(url, methodStr, operation, issues)
                                 }
 
-                                fuzzerService.runFuzzing(
-                                    url,
-                                    operation,
-                                    userInput.clientId,
-                                    userInput.clientSecret,
-                                    consentService.selectConsentForPath(url, paymentConsentId, productConsentId, accountConsentId) ?: "",
-                                    issues
+                                fuzzerService.runFuzzingPublic(
+                                    url = url,
+                                    operation = operation,
+                                    httpMethod = httpMethod,
+                                    clientId = userInput.clientId,
+                                    clientSecret = userInput.clientSecret,
+                                    consentId = consentService.selectConsentForPath(url, paymentConsentId, productConsentId, accountConsentId) ?: "",
+                                    issues = issues
                                 )
                             } catch (ex: Exception) {
                                 issues.add(Issue("SCAN_ERROR", Severity.MEDIUM, "Ошибка при запросе $url: ${ex.message}"))
                             }
-                            Unit // <- добавить здесь
+                            Unit
                         }
                     })
 
