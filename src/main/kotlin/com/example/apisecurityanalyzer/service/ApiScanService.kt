@@ -3,6 +3,7 @@ package com.example.apianalyzer.service
 import com.example.apianalyzer.model.*
 import com.example.apianalyzer.plugin.*
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.time.Instant
+import kotlin.random.Random
 
 @Service
 class ApiScanService(
@@ -27,13 +29,16 @@ class ApiScanService(
     private val consentService: ConsentService,
     private val fuzzerService: FuzzerService
 ) {
-
     private val mapper = jacksonObjectMapper()
     private val client get() = clientProvider.client
 
     fun runScan(userInput: UserInput): ScanReport = runBlocking {
         val issues = mutableListOf<Issue>()
+        val observedEndpoints = mutableSetOf<String>()
 
+        // ----------------------
+        // Загрузка и парсинг OpenAPI
+        // ----------------------
         val specText = try {
             client.get(userInput.specUrl).bodyAsText()
         } catch (e: Exception) {
@@ -67,7 +72,6 @@ class ApiScanService(
 
         coroutineScope {
             val jobs = mutableListOf<Deferred<Unit>>()
-
             for ((pathTemplate, pathItem) in pathsMap) {
                 val operations = extractOperations(pathItem)
                 for ((methodStr, operation) in operations) {
@@ -75,8 +79,8 @@ class ApiScanService(
 
                     val combinedParams: List<Parameter> =
                         (pathItem.parameters ?: emptyList()) + (operation.parameters ?: emptyList())
-
                     val url = buildUrlFromPath(userInput.targetUrl, pathTemplate, combinedParams)
+                    observedEndpoints += url
                     val httpMethod = HttpMethod.parse(methodStr)
 
                     jobs.add(async {
@@ -84,8 +88,20 @@ class ApiScanService(
                             delay(userInput.politenessDelayMs.toLong())
                             try {
                                 val body = generateValidRequestBody(operation, userInput)
-                                performRequestWithAuth(url, methodStr, body, openIdToken, issues, userInput.useGostGateway)
+                                val responseBody = performRequestAndGetBody(url, methodStr, body, openIdToken, issues, userInput.useGostGateway)
 
+                                // ----------------------
+                                // Проверка соответствия спецификации
+                                // ----------------------
+                                if (responseBody != null) {
+                                    validateResponseAgainstSchema(responseBody, operation, url, methodStr, issues)
+                                    validateResponseTypes(responseBody, operation, url, methodStr, issues)
+                                    detectExcessiveData(responseBody, operation, url, methodStr, issues)
+                                }
+
+                                // ----------------------
+                                // Вызов плагинов
+                                // ----------------------
                                 if (userInput.enableBrokenAuth) {
                                     BrokenAuthCheckerPlugin(clientProvider, consentService, userInput, openIdToken ?: "")
                                         .runCheck(url, methodStr, operation, issues)
@@ -116,7 +132,6 @@ class ApiScanService(
                                     SensitiveFilesCheckerPlugin(clientProvider, consentService, userInput, openIdToken ?: "")
                                         .runCheck(url, methodStr, operation, issues)
                                 }
-
                                 if (userInput.enableFuzzing) {
                                     fuzzerService.runFuzzingPublic(
                                         url = url,
@@ -128,6 +143,7 @@ class ApiScanService(
                                         issues = issues
                                     )
                                 }
+
                             } catch (ex: Exception) {
                                 issues.add(Issue("SCAN_ERROR", Severity.MEDIUM, "Ошибка при запросе $url: ${ex.message}"))
                             }
@@ -139,8 +155,36 @@ class ApiScanService(
             jobs.awaitAll()
         }
 
+        // ----------------------
+        // Глобальные проверки
+        // ----------------------
         if (userInput.enableRateLimiting || userInput.enableSensitiveFiles || userInput.enablePublicSwagger) {
             runGlobalChecks(client, userInput.targetUrl, issues, userInput)
+        }
+
+        // ----------------------
+        // Неописанные эндпоинты
+        // ----------------------
+        if (userInput.enableSpecChecks) {
+            val knownUrls = pathsMap.flatMap { (template, pi) ->
+                extractOperations(pi).mapNotNull { (method, _) ->
+                    buildUrlFromPath(userInput.targetUrl, template, pi.parameters ?: emptyList())
+                }
+            }.toSet()
+            val unknownEndpoints = observedEndpoints - knownUrls
+            unknownEndpoints.forEach { url ->
+                issues.add(
+                    Issue(
+                        type = "POTENTIAL_SPECMATCH",
+                        severity = Severity.MEDIUM,
+                        description = "Обнаружен эндпоинт не описанный в спецификации",
+                        url = url,
+                        method = null,
+                        evidence = null,
+                        recommendation = "Проверить, стоит ли добавить эндпоинт в спецификацию или он лишний"
+                    )
+                )
+            }
         }
 
         ScanReport(
@@ -174,17 +218,17 @@ class ApiScanService(
         return buildSampleJsonFromSchema(schema, userInput)
     }
 
-    private suspend fun performRequestWithAuth(
+    private suspend fun performRequestAndGetBody(
         url: String,
         method: String,
         body: JsonNode?,
         token: String?,
         issues: MutableList<Issue>,
         useGostGateway: Boolean
-    ) {
-        try {
-            if (useGostGateway) {
-                if (token.isNullOrBlank()) return
+    ): JsonNode? {
+        return try {
+            val text = if (useGostGateway) {
+                if (token.isNullOrBlank()) return null
                 executeGostCurl(url, method, token, body)
             } else {
                 client.request(url) {
@@ -194,26 +238,120 @@ class ApiScanService(
                         setBody(body.toString())
                     }
                     if (!token.isNullOrBlank()) header("Authorization", "Bearer $token")
-                }
+                }.bodyAsText()
             }
-        } catch (ex: ClientRequestException) {
-            issues.add(Issue("SPEC_MISMATCH", Severity.MEDIUM, "Ответ не соответствует спецификации: ${ex.response.status.value}"))
+            mapper.readTree(text)
         } catch (ex: Exception) {
-            issues.add(Issue("REQUEST_FAIL", Severity.MEDIUM, "Ошибка запроса: ${ex.message}"))
+            issues.add(Issue("REQUEST_FAIL", Severity.MEDIUM, "Не удалось получить или распарсить ответ: ${ex.message}", url, method))
+            null
         }
     }
 
-    private fun buildSampleJsonFromSchema(schema: io.swagger.v3.oas.models.media.Schema<*>, userInput: UserInput): JsonNode {
+    private fun validateResponseAgainstSchema(
+        response: JsonNode,
+        operation: io.swagger.v3.oas.models.Operation,
+        url: String,
+        method: String,
+        issues: MutableList<Issue>
+    ) {
+        val schema = operation.responses?.get("200")?.content?.values?.firstOrNull()?.schema ?: return
+        checkMissingFields(response, schema, url, method, issues)
+    }
+
+    private fun validateResponseTypes(
+        response: JsonNode,
+        schemaOwner: io.swagger.v3.oas.models.Operation,
+        url: String,
+        method: String,
+        issues: MutableList<Issue>
+    ) {
+        val schema = schemaOwner.responses?.get("200")?.content?.values?.firstOrNull()?.schema ?: return
+        schema.properties?.forEach { (k, prop) ->
+            if (response.has(k)) {
+                val value = response[k]
+                val mismatch = when (prop.type) {
+                    "string" -> !value.isTextual
+                    "integer" -> !value.isInt
+                    "number" -> !value.isDouble && !value.isInt
+                    "boolean" -> !value.isBoolean
+                    "object" -> !value.isObject
+                    else -> false
+                }
+                if (mismatch) {
+                    issues.add(
+                        Issue(
+                            type = "POTENTIAL_TYPE_MISMATCH",
+                            severity = Severity.MEDIUM,
+                            description = "Неверный тип поля '$k', ожидается ${prop.type}",
+                            url = url,
+                            method = method,
+                            evidence = value.toString(),
+                            recommendation = "Исправьте тип данных поля '$k' в API или спецификации"
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    private fun detectExcessiveData(
+        response: JsonNode,
+        schemaOwner: io.swagger.v3.oas.models.Operation,
+        url: String,
+        method: String,
+        issues: MutableList<Issue>
+    ) {
+        val schema = schemaOwner.responses?.get("200")?.content?.values?.firstOrNull()?.schema ?: return
+        response.fieldNames().asSequence().forEach { field ->
+            if (schema.properties?.containsKey(field) != true) {
+                issues.add(
+                    Issue(
+                        type = "POTENTIAL_EXCESS_DATA",
+                        severity = Severity.LOW,
+                        description = "Поле '$field' присутствует в ответе, но отсутствует в спецификации",
+                        url = url,
+                        method = method,
+                        evidence = response[field].toString(),
+                        recommendation = "Удалить лишние данные из ответа или добавить поле в спецификацию"
+                    )
+                )
+            }
+        }
+    }
+
+    private fun checkMissingFields(
+        response: JsonNode,
+        schema: io.swagger.v3.oas.models.media.Schema<*>,
+        url: String,
+        method: String,
+        issues: MutableList<Issue>
+    ) {
+        schema.required?.forEach { field ->
+            if (!response.has(field)) {
+                issues.add(
+                    Issue(
+                        type = "POTENTIAL_MISSING_FIELD",
+                        severity = Severity.MEDIUM,
+                        description = "Отсутствует обязательное поле '$field'",
+                        url = url,
+                        method = method,
+                        evidence = null,
+                        recommendation = "Добавьте поле '$field' в ответ API или обновите спецификацию"
+                    )
+                )
+            }
+        }
+    }
+
+    private fun buildSampleJsonFromSchema(schema: io.swagger.v3.oas.models.media.Schema<*>, userInput: UserInput): ObjectNode {
         val node = mapper.createObjectNode()
         schema.properties?.forEach { (key, prop) ->
             when (prop.type) {
-                "string" -> node.put(
-                    key, when (key.lowercase()) {
-                        "client_id" -> userInput.clientId
-                        "bank" -> userInput.requestingBank
-                        else -> "sample"
-                    }
-                )
+                "string" -> node.put(key, when (key.lowercase()) {
+                    "client_id" -> userInput.clientId
+                    "bank" -> userInput.requestingBank
+                    else -> "sample"
+                })
                 "integer" -> node.put(key, 1)
                 "number" -> node.put(key, 1.0)
                 "boolean" -> node.put(key, true)
@@ -222,6 +360,12 @@ class ApiScanService(
             }
         }
         return node
+    }
+
+    private fun buildUrlFromPath(base: String, template: String, params: List<Parameter>): String {
+        var u = template
+        params.filter { it.`in` == "path" }.forEach { u = u.replace("{${it.name}}", Random.nextInt(1, 99).toString()) }
+        return base.trimEnd('/') + u
     }
 
     private fun executeGostCurl(url: String, method: String, token: String, body: JsonNode?): String {
@@ -233,7 +377,6 @@ class ApiScanService(
             url
         )
         if (body != null) cmd.addAll(listOf("-d", body.toString()))
-
         val process = ProcessBuilder(cmd).start()
         val result = StringBuilder()
         BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
@@ -244,12 +387,10 @@ class ApiScanService(
     }
 }
 
-suspend fun runGlobalChecks(
-    client: io.ktor.client.HttpClient,
-    baseUrl: String,
-    issues: MutableList<Issue>,
-    userInput: UserInput
-) {
+// ----------------------
+// Глобальные проверки
+// ----------------------
+suspend fun runGlobalChecks(client: io.ktor.client.HttpClient, baseUrl: String, issues: MutableList<Issue>, userInput: UserInput) {
     if (userInput.enableRateLimiting) checkRateLimiting(client, baseUrl, issues)
     if (userInput.enableSensitiveFiles) checkSensitiveFiles(client, baseUrl, issues)
     if (userInput.enablePublicSwagger) checkPublicSwagger(client, baseUrl, issues)
