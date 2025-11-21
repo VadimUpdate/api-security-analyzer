@@ -270,7 +270,7 @@ class FuzzerService(
                         contentType(ContentType.Application.Json)
                     }
                 },
-                issues = issues // <- теперь передаем отдельным именованным параметром
+                issues = issues
             )
 
             val text = runCatching { response.bodyAsText() }.getOrElse { "" }
@@ -304,7 +304,8 @@ class FuzzerService(
 
         } catch (ex: Exception) {
             val msg = ex.message ?: ""
-            if (!msg.contains("token", true)) {
+            // Игнорируем ошибки, связанные с отсутствием токена или consentId
+            if (!msg.contains("token", true) && !msg.contains("consentId", true)) {
                 issues.add(
                     Issue(
                         "FUZZ_EXCEPTION",
@@ -320,7 +321,6 @@ class FuzzerService(
             semaphore.release()
         }
     }
-
 
     private fun detectAdditionalVulnerabilities(
         url: String,

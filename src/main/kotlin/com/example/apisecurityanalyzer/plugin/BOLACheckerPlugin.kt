@@ -91,15 +91,36 @@ class BOLACheckerPlugin(
         }
 
         if (userInput.enableFuzzing) {
-            fuzzerService.runFuzzingPublic(
-                url = url,
-                operation = operation,
-                httpMethod = httpMethod,
-                clientId = userInput.clientId,
-                clientSecret = userInput.clientSecret,
-                consentId = consentId,
-                issues = issues
-            )
+            try {
+                fuzzerService.runFuzzingPublic(
+                    url = url,
+                    operation = operation,
+                    httpMethod = httpMethod,
+                    clientId = userInput.clientId,
+                    clientSecret = userInput.clientSecret,
+                    consentId = consentId,
+                    issues = issues
+                )
+            } catch (ex: Exception) {
+                val msg = ex.message?.lowercase() ?: ""
+                if (
+                    "требуется токен" !in msg &&
+                    "token required" !in msg &&
+                    "consent" !in msg
+                ) {
+                    issues.add(
+                        Issue(
+                            type = "FUZZ_EXCEPTION",
+                            severity = Severity.HIGH,
+                            description = "Exception during fuzzing: ${ex.message}",
+                            url = url,
+                            method = httpMethod.value,
+                            evidence = null,
+                            recommendation = null
+                        )
+                    )
+                }
+            }
         }
     }
 
