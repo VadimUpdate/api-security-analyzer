@@ -29239,3 +29239,174 @@ java.net.URISyntaxException: Illegal character in path at index 78: https://api.
 2025-11-21 12:16:02 [http-nio-8080-exec-1] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
 2025-11-21 12:16:02 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
 2025-11-21 12:16:02 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 0 ms
+2025-11-21 12:17:48 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 11744 (C:\Users\user\IdeaProjects\java\demo3\api-security-analyzer\api-security-analyzer\api-security-analyzer\api-security-analyzer\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\java\demo3\api-security-analyzer\api-security-analyzer\api-security-analyzer\api-security-analyzer)
+2025-11-21 12:17:48 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-21 12:17:49 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-21 12:17:49 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-21 12:17:49 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-21 12:17:49 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-21 12:17:49 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-21 12:17:49 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 809 ms
+2025-11-21 12:17:49 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-21 12:17:49 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-21 12:17:49 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-21 12:17:49 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 1.738 seconds (process running for 2.09)
+2025-11-21 12:17:50 [http-nio-8080-exec-1] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-21 12:17:50 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-11-21 12:17:50 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 0 ms
+2025-11-21 12:20:51 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 6896 (C:\Users\user\IdeaProjects\java\demo3\api-security-analyzer\api-security-analyzer\api-security-analyzer\api-security-analyzer\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\java\demo3\api-security-analyzer\api-security-analyzer\api-security-analyzer\api-security-analyzer)
+2025-11-21 12:20:51 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-21 12:20:52 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-21 12:20:52 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-21 12:20:52 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-21 12:20:52 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-21 12:20:52 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-21 12:20:52 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 856 ms
+2025-11-21 12:20:52 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-21 12:20:53 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-21 12:20:53 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-21 12:20:53 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 2.02 seconds (process running for 2.362)
+2025-11-21 12:20:54 [http-nio-8080-exec-1] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-21 12:20:54 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-11-21 12:20:54 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
+2025-11-21 12:25:53 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 11608 (C:\Users\user\IdeaProjects\java\demo3\api-security-analyzer\api-security-analyzer\api-security-analyzer\api-security-analyzer\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\java\demo3\api-security-analyzer\api-security-analyzer\api-security-analyzer\api-security-analyzer)
+2025-11-21 12:25:53 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-21 12:25:54 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-21 12:25:54 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-21 12:25:54 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-21 12:25:54 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-21 12:25:54 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-21 12:25:54 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 842 ms
+2025-11-21 12:25:54 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-21 12:25:54 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-21 12:25:54 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-21 12:25:54 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 1.818 seconds (process running for 2.167)
+2025-11-21 12:25:55 [http-nio-8080-exec-2] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-21 12:25:55 [http-nio-8080-exec-2] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-11-21 12:25:55 [http-nio-8080-exec-2] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
+2025-11-21 12:28:02 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 10412 (C:\Users\user\IdeaProjects\java\demo3\api-security-analyzer\api-security-analyzer\api-security-analyzer\api-security-analyzer\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\java\demo3\api-security-analyzer\api-security-analyzer\api-security-analyzer\api-security-analyzer)
+2025-11-21 12:28:02 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-21 12:28:03 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-21 12:28:03 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-21 12:28:03 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-21 12:28:03 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-21 12:28:03 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-21 12:28:03 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 781 ms
+2025-11-21 12:28:03 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-21 12:28:03 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-21 12:28:04 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-21 12:28:04 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 1.666 seconds (process running for 2.009)
+2025-11-21 12:28:05 [http-nio-8080-exec-5] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-21 12:28:05 [http-nio-8080-exec-5] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-11-21 12:28:05 [http-nio-8080-exec-5] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
+2025-11-21 19:57:15 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 9748 (C:\Users\user\IdeaProjects\java\demo3\api-security-analyzer\api-security-analyzer\api-security-analyzer\api-security-analyzer\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\java\demo3\api-security-analyzer\api-security-analyzer\api-security-analyzer\api-security-analyzer)
+2025-11-21 19:57:15 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-21 19:57:16 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-21 19:57:16 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-21 19:57:16 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-21 19:57:16 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-21 19:57:16 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-21 19:57:16 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 1174 ms
+2025-11-21 19:57:17 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-21 19:57:17 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-21 19:57:17 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-21 19:57:17 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 2.35 seconds (process running for 2.872)
+2025-11-21 20:11:03 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 27464 (C:\Users\user\IdeaProjects\java\demo3\api-security-analyzer\api-security-analyzer\api-security-analyzer\api-security-analyzer\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\java\demo3\api-security-analyzer\api-security-analyzer\api-security-analyzer\api-security-analyzer)
+2025-11-21 20:11:03 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-21 20:11:03 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-21 20:11:03 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-21 20:11:03 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-21 20:11:03 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-21 20:11:04 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-21 20:11:04 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 797 ms
+2025-11-21 20:11:04 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-21 20:11:04 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-21 20:11:04 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-21 20:11:04 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 1.908 seconds (process running for 2.254)
+2025-11-21 20:17:15 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 24304 (C:\Users\user\IdeaProjects\java\demo3\api-security-analyzer\api-security-analyzer\api-security-analyzer\api-security-analyzer\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\java\demo3\api-security-analyzer\api-security-analyzer\api-security-analyzer\api-security-analyzer)
+2025-11-21 20:17:15 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-21 20:17:15 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-21 20:17:15 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-21 20:17:15 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-21 20:17:15 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-21 20:17:16 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-21 20:17:16 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 931 ms
+2025-11-21 20:17:16 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-21 20:17:16 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-21 20:17:16 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-21 20:17:16 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 2.089 seconds (process running for 2.459)
+2025-11-21 20:18:51 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 29336 (C:\Users\user\IdeaProjects\java\demo3\api-security-analyzer\api-security-analyzer\api-security-analyzer\api-security-analyzer\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\java\demo3\api-security-analyzer\api-security-analyzer\api-security-analyzer\api-security-analyzer)
+2025-11-21 20:18:51 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-21 20:18:52 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-21 20:18:52 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-21 20:18:52 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-21 20:18:52 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-21 20:18:52 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-21 20:18:52 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 760 ms
+2025-11-21 20:18:52 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-21 20:18:52 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-21 20:18:52 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-21 20:18:52 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 1.653 seconds (process running for 2.02)
+2025-11-21 20:21:51 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 7172 (C:\Users\user\IdeaProjects\java\demo3\api-security-analyzer\api-security-analyzer\api-security-analyzer\api-security-analyzer\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\java\demo3\api-security-analyzer\api-security-analyzer\api-security-analyzer\api-security-analyzer)
+2025-11-21 20:21:51 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-21 20:21:51 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-21 20:21:51 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-21 20:21:51 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-21 20:21:51 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-21 20:21:52 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-21 20:21:52 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 831 ms
+2025-11-21 20:21:52 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-21 20:21:52 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-21 20:21:52 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-21 20:21:52 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 1.71 seconds (process running for 2.058)
+2025-11-21 20:25:47 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 28324 (C:\Users\user\IdeaProjects\java\demo3\api-security-analyzer\api-security-analyzer\api-security-analyzer\api-security-analyzer\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\java\demo3\api-security-analyzer\api-security-analyzer\api-security-analyzer\api-security-analyzer)
+2025-11-21 20:25:47 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-21 20:25:48 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-21 20:25:48 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-21 20:25:48 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-21 20:25:48 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-21 20:25:48 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-21 20:25:48 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 947 ms
+2025-11-21 20:25:48 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-21 20:25:49 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-21 20:25:49 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-21 20:25:49 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 2.162 seconds (process running for 2.514)
+2025-11-21 20:27:33 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 2856 (C:\Users\user\IdeaProjects\java\demo3\api-security-analyzer\api-security-analyzer\api-security-analyzer\api-security-analyzer\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\java\demo3\api-security-analyzer\api-security-analyzer\api-security-analyzer\api-security-analyzer)
+2025-11-21 20:27:33 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-21 20:27:35 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-21 20:27:35 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-21 20:27:35 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-21 20:27:35 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-21 20:27:35 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-21 20:27:35 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 1567 ms
+2025-11-21 20:27:36 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-21 20:27:36 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-21 20:27:36 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-21 20:27:36 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 3.268 seconds (process running for 3.929)
+2025-11-21 20:29:34 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 364 (C:\Users\user\IdeaProjects\java\demo3\api-security-analyzer\api-security-analyzer\api-security-analyzer\api-security-analyzer\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\java\demo3\api-security-analyzer\api-security-analyzer\api-security-analyzer\api-security-analyzer)
+2025-11-21 20:29:34 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-21 20:29:35 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-21 20:29:35 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-21 20:29:35 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-21 20:29:35 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-21 20:29:35 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-21 20:29:35 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 876 ms
+2025-11-21 20:29:35 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-21 20:29:36 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-21 20:29:36 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-21 20:29:36 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 1.796 seconds (process running for 2.143)
+2025-11-21 20:36:33 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Starting ApiSecurityAnalyzerApplicationKt using Java 21.0.7 with PID 27272 (C:\Users\user\IdeaProjects\java\demo3\api-security-analyzer\api-security-analyzer\api-security-analyzer\api-security-analyzer\build\classes\kotlin\main started by user in C:\Users\user\IdeaProjects\java\demo3\api-security-analyzer\api-security-analyzer\api-security-analyzer\api-security-analyzer)
+2025-11-21 20:36:33 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - No active profile set, falling back to 1 default profile: "default"
+2025-11-21 20:36:34 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-11-21 20:36:34 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2025-11-21 20:36:34 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-11-21 20:36:34 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-11-21 20:36:34 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-11-21 20:36:34 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 784 ms
+2025-11-21 20:36:34 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-11-21 20:36:34 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2025-11-21 20:36:34 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2025-11-21 20:36:34 [main] INFO  c.e.a.ApiSecurityAnalyzerApplicationKt - Started ApiSecurityAnalyzerApplicationKt in 1.677 seconds (process running for 2.033)
+2025-11-21 20:36:36 [http-nio-8080-exec-1] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-11-21 20:36:36 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-11-21 20:36:36 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms

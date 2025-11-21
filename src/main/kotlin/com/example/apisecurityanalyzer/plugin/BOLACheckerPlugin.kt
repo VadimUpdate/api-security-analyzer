@@ -36,9 +36,9 @@ class BOLACheckerPlugin(
         if (userInput.enableSensitiveFiles) runExcessiveExposure(url, method, operation, issues)
         if (userInput.enableBrokenAuth) runBrokenAuth(url, method, operation, issues)
         if (userInput.enableRateLimiting) runRateLimit(url, method, operation, issues)
-        runDebugExposure(url, method, operation, issues) // обычно debugExposure можно всегда проверять
+        runDebugExposure(url, method, operation, issues)
+        runRoleTampering(url, method, operation, issues)
     }
-
 
     private fun convertToHttpMethod(method: String): HttpMethod =
         when (method.uppercase()) {

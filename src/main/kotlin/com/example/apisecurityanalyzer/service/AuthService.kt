@@ -26,13 +26,9 @@ class AuthService(
     private var authToken: String? = null
     private val tokenMutex = Mutex()
 
-    /**
-     * Унифицированная функция выполнения запросов с автоматическим:
-     * - добавлением Authorization: Bearer (OpenID токен)
-     * - добавлением X-Requesting-Bank
-     * - добавлением X-Consent-Id
-     * - retry на 401
-     */
+    // -------------------------
+    // Выполнение запроса с токеном и X-MDM-ID
+    // -------------------------
     suspend fun performRequestWithAuth(
         method: HttpMethod,
         url: String,
@@ -43,7 +39,7 @@ class AuthService(
         bodyBlock: (HttpRequestBuilder.() -> Unit)? = null,
         issues: MutableList<Issue>? = null
     ): HttpResponse {
-        if (requireToken && (authToken.isNullOrBlank() || (consentId.isBlank()))) {
+        if (requireToken && (authToken.isNullOrBlank() || consentId.isBlank())) {
             throw IllegalStateException("Требуется токен/consentId для запроса $url")
         }
 
@@ -53,11 +49,11 @@ class AuthService(
                 if (!token.isNullOrBlank()) header("Authorization", "Bearer $token")
                 header("X-Requesting-Bank", clientId)
                 if (consentId.isNotBlank()) header("X-Consent-Id", consentId)
+                header("X-MDM-ID", "test-mdm-001")
                 header("Accept", "application/json")
                 header("Accept-Charset", "UTF-8")
                 header("User-Agent", "ApiSecurityAnalyzer/1.0")
                 contentType(ContentType.Application.Json)
-
                 bodyBlock?.invoke(this)
             }
         }
@@ -77,9 +73,9 @@ class AuthService(
         }
     }
 
-    /**
-     * Получение OpenID token через client_credentials
-     */
+    // -------------------------
+    // Получение OpenID токена
+    // -------------------------
     suspend fun fetchOpenIdToken(
         clientId: String,
         clientSecret: String,
@@ -129,6 +125,9 @@ class AuthService(
         }
     }
 
+    // -------------------------
+    // Получение токена с кэшированием
+    // -------------------------
     suspend fun getOpenIdToken(
         clientId: String,
         clientSecret: String,
@@ -144,6 +143,9 @@ class AuthService(
         throw IllegalStateException("Не удалось получить OpenID token")
     }
 
+    // -------------------------
+    // Создание consent
+    // -------------------------
     suspend fun createConsent(
         clientId: String,
         clientSecret: String,
@@ -170,6 +172,7 @@ class AuthService(
         val resp: HttpResponse = client.post(consentUrl) {
             header("Authorization", "Bearer $token")
             header("X-Requesting-Bank", clientId)
+            header("X-MDM-ID", "test-mdm-001")
             contentType(ContentType.Application.Json)
             setBody(requestBody)
         }

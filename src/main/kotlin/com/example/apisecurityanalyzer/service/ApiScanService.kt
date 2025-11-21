@@ -3,14 +3,15 @@ package com.example.apianalyzer.service
 import com.example.apianalyzer.model.*
 import com.example.apianalyzer.plugin.*
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
-import io.ktor.client.plugins.*
 import io.ktor.http.*
 import io.swagger.v3.oas.models.OpenAPI
+import io.swagger.v3.oas.models.media.Schema
 import io.swagger.v3.oas.models.parameters.Parameter
 import io.swagger.v3.parser.OpenAPIV3Parser
 import kotlinx.coroutines.*
@@ -35,9 +36,10 @@ class ApiScanService(
     fun runScan(userInput: UserInput): ScanReport = runBlocking {
         val issues = mutableListOf<Issue>()
         val observedEndpoints = mutableSetOf<String>()
+        val observedResponses = mutableMapOf<String, MutableSet<Int>>()  // URL → set(statusCode)
 
         // ----------------------
-        // Загрузка и парсинг OpenAPI
+        // Load & Parse Spec
         // ----------------------
         val specText = try {
             client.get(userInput.specUrl).bodyAsText()
@@ -87,20 +89,21 @@ class ApiScanService(
                         semaphore.withPermit {
                             delay(userInput.politenessDelayMs.toLong())
                             try {
-                                val body = generateValidRequestBody(operation, userInput)
-                                val responseBody = performRequestAndGetBody(url, methodStr, body, openIdToken, issues, userInput.useGostGateway)
+                                val requestBody = generateValidRequestBody(operation, userInput)
+                                val rawResponse = performRawRequest(url, methodStr, requestBody, openIdToken, issues, userInput.useGostGateway)
 
-                                // ----------------------
-                                // Проверка соответствия спецификации
-                                // ----------------------
-                                if (responseBody != null) {
-                                    validateResponseAgainstSchema(responseBody, operation, url, methodStr, issues)
-                                    validateResponseTypes(responseBody, operation, url, methodStr, issues)
-                                    detectExcessiveData(responseBody, operation, url, methodStr, issues)
+                                if (rawResponse != null) {
+                                    observedResponses.getOrPut(url) { mutableSetOf() }.add(rawResponse.status)
+
+                                    val jsonBody = rawResponse.body
+                                    validateStatusCode(operation, rawResponse.status, url, methodStr, issues)
+                                    if (jsonBody != null) {
+                                        validateResponseRecursive(jsonBody, operation, url, methodStr, issues)
+                                    }
                                 }
 
                                 // ----------------------
-                                // Вызов плагинов
+                                // Plugins
                                 // ----------------------
                                 if (userInput.enableBrokenAuth) {
                                     BrokenAuthCheckerPlugin(clientProvider, consentService, userInput, openIdToken ?: "")
@@ -147,7 +150,7 @@ class ApiScanService(
                             } catch (ex: Exception) {
                                 issues.add(Issue("SCAN_ERROR", Severity.MEDIUM, "Ошибка при запросе $url: ${ex.message}"))
                             }
-                            Unit
+                            return@withPermit Unit
                         }
                     })
                 }
@@ -156,38 +159,26 @@ class ApiScanService(
         }
 
         // ----------------------
-        // Глобальные проверки
+        // Global checks
         // ----------------------
         if (userInput.enableRateLimiting || userInput.enableSensitiveFiles || userInput.enablePublicSwagger) {
             runGlobalChecks(client, userInput.targetUrl, issues, userInput)
         }
 
         // ----------------------
-        // Неописанные эндпоинты
+        // Shadow endpoints
         // ----------------------
         if (userInput.enableSpecChecks) {
-            val knownUrls = pathsMap.flatMap { (template, pi) ->
-                extractOperations(pi).mapNotNull { (method, _) ->
-                    buildUrlFromPath(userInput.targetUrl, template, pi.parameters ?: emptyList())
-                }
-            }.toSet()
-            val unknownEndpoints = observedEndpoints - knownUrls
-            unknownEndpoints.forEach { url ->
-                issues.add(
-                    Issue(
-                        type = "POTENTIAL_SPECMATCH",
-                        severity = Severity.MEDIUM,
-                        description = "Обнаружен эндпоинт не описанный в спецификации",
-                        url = url,
-                        method = null,
-                        evidence = null,
-                        recommendation = "Проверить, стоит ли добавить эндпоинт в спецификацию или он лишний"
-                    )
-                )
-            }
+            detectShadowEndpoints(
+                observedEndpoints,
+                observedResponses,
+                pathsMap,
+                userInput,
+                issues
+            )
         }
 
-        ScanReport(
+        return@runBlocking ScanReport(
             specUrl = userInput.specUrl,
             targetUrl = userInput.targetUrl,
             timestamp = Instant.now(),
@@ -213,41 +204,81 @@ class ApiScanService(
             accountIds = emptyList()
         )
 
-    private fun generateValidRequestBody(operation: io.swagger.v3.oas.models.Operation, userInput: UserInput): JsonNode? {
-        val schema = operation.requestBody?.content?.values?.firstOrNull()?.schema ?: return null
-        return buildSampleJsonFromSchema(schema, userInput)
-    }
+    // ---------------------------------------------------------
+    // REQUEST EXECUTION
+    // ---------------------------------------------------------
 
-    private suspend fun performRequestAndGetBody(
+    private data class RawResponse(val status: Int, val body: JsonNode?)
+
+    private suspend fun performRawRequest(
         url: String,
         method: String,
         body: JsonNode?,
         token: String?,
         issues: MutableList<Issue>,
         useGostGateway: Boolean
-    ): JsonNode? {
+    ): RawResponse? {
         return try {
-            val text = if (useGostGateway) {
-                if (token.isNullOrBlank()) return null
-                executeGostCurl(url, method, token, body)
-            } else {
-                client.request(url) {
-                    this.method = HttpMethod.parse(method)
-                    if (body != null) {
-                        contentType(ContentType.Application.Json)
-                        setBody(body.toString())
+            val (status, text) =
+                if (useGostGateway) {
+                    if (token.isNullOrBlank()) return null
+                    val raw = executeGostCurl(url, method, token, body)
+                    200 to raw // GOST gateway does not return code
+                } else {
+                    val resp = client.request(url) {
+                        this.method = HttpMethod.parse(method)
+                        if (body != null) {
+                            contentType(ContentType.Application.Json)
+                            setBody(body.toString())
+                        }
+                        if (!token.isNullOrBlank()) header("Authorization", "Bearer $token")
                     }
-                    if (!token.isNullOrBlank()) header("Authorization", "Bearer $token")
-                }.bodyAsText()
+                    resp.status.value to resp.bodyAsText()
+                }
+
+            val parsedBody = try {
+                if (!text.isNullOrBlank()) mapper.readTree(text) else null
+            } catch (_: Exception) {
+                null
             }
-            mapper.readTree(text)
+
+            RawResponse(status, parsedBody)
+
         } catch (ex: Exception) {
-            issues.add(Issue("REQUEST_FAIL", Severity.MEDIUM, "Не удалось получить или распарсить ответ: ${ex.message}", url, method))
+            issues.add(Issue("REQUEST_FAIL", Severity.MEDIUM, "Не удалось выполнить запрос: ${ex.message}", url, method))
             null
         }
     }
 
-    private fun validateResponseAgainstSchema(
+    // ---------------------------------------------------------
+    // FULL CONTRACT VALIDATION
+    // ---------------------------------------------------------
+
+    private fun validateStatusCode(
+        operation: io.swagger.v3.oas.models.Operation,
+        actualStatus: Int,
+        url: String,
+        method: String,
+        issues: MutableList<Issue>
+    ) {
+        val declared = operation.responses?.keys?.mapNotNull { it.toIntOrNull() }?.toSet() ?: emptySet()
+
+        if (declared.isNotEmpty() && actualStatus !in declared) {
+            issues.add(
+                Issue(
+                    type = "UNDECLARED_STATUS_CODE",
+                    severity = Severity.MEDIUM,
+                    description = "Код ответа $actualStatus отсутствует в спецификации",
+                    url = url,
+                    method = method,
+                    evidence = "Declared: $declared",
+                    recommendation = "Добавить код ответа в спецификацию или исправить ответ API"
+                )
+            )
+        }
+    }
+
+    private fun validateResponseRecursive(
         response: JsonNode,
         operation: io.swagger.v3.oas.models.Operation,
         url: String,
@@ -255,38 +286,150 @@ class ApiScanService(
         issues: MutableList<Issue>
     ) {
         val schema = operation.responses?.get("200")?.content?.values?.firstOrNull()?.schema ?: return
-        checkMissingFields(response, schema, url, method, issues)
+        checkSchemaRecursive(response, schema, "$url [$method]", issues)
     }
 
-    private fun validateResponseTypes(
-        response: JsonNode,
-        schemaOwner: io.swagger.v3.oas.models.Operation,
-        url: String,
-        method: String,
+    private fun checkSchemaRecursive(
+        node: JsonNode,
+        schema: Schema<*>,
+        context: String,
         issues: MutableList<Issue>
     ) {
-        val schema = schemaOwner.responses?.get("200")?.content?.values?.firstOrNull()?.schema ?: return
-        schema.properties?.forEach { (k, prop) ->
-            if (response.has(k)) {
-                val value = response[k]
-                val mismatch = when (prop.type) {
-                    "string" -> !value.isTextual
-                    "integer" -> !value.isInt
-                    "number" -> !value.isDouble && !value.isInt
-                    "boolean" -> !value.isBoolean
-                    "object" -> !value.isObject
-                    else -> false
-                }
-                if (mismatch) {
+        when (schema.type) {
+            "object" -> {
+                if (!node.isObject) {
                     issues.add(
                         Issue(
-                            type = "POTENTIAL_TYPE_MISMATCH",
-                            severity = Severity.MEDIUM,
-                            description = "Неверный тип поля '$k', ожидается ${prop.type}",
+                            "TYPE_MISMATCH",
+                            Severity.MEDIUM,
+                            "Ожидался объект в $context",
+                            url = context,
+                            method = null,
+                            evidence = node.toString()
+                        )
+                    )
+                    return
+                }
+                val obj = node as ObjectNode
+                val props = schema.properties ?: emptyMap()
+
+                // missing required
+                schema.required?.forEach { req ->
+                    if (!obj.has(req)) {
+                        issues.add(
+                            Issue(
+                                "MISSING_REQUIRED_FIELD",
+                                Severity.MEDIUM,
+                                "Отсутствует обязательное поле '$req' в $context",
+                                url = context,
+                                method = null
+                            )
+                        )
+                    }
+                }
+
+                // extra fields
+                obj.fieldNames().forEach { field ->
+                    if (!props.containsKey(field)) {
+                        issues.add(
+                            Issue(
+                                "EXTRA_FIELD",
+                                Severity.LOW,
+                                "Поле '$field' отсутствует в спецификации",
+                                url = context,
+                                method = null,
+                                evidence = obj[field].toString()
+                            )
+                        )
+                    }
+                }
+
+                // recursively validate children
+                props.forEach { (name, propSchema) ->
+                    if (obj.has(name)) {
+                        checkSchemaRecursive(obj[name], propSchema, "$context.$name", issues)
+                    }
+                }
+            }
+
+            "array" -> {
+                if (!node.isArray) {
+                    issues.add(
+                        Issue(
+                            "TYPE_MISMATCH",
+                            Severity.MEDIUM,
+                            "Ожидался массив в $context",
+                            url = context,
+                            method = null,
+                            evidence = node.toString()
+                        )
+                    )
+                    return
+                }
+                val items = (node as ArrayNode)
+                val itemSchema = schema.items ?: return
+                items.forEachIndexed { i, child ->
+                    checkSchemaRecursive(child, itemSchema, "$context[$i]", issues)
+                }
+            }
+
+            "string" -> if (!node.isTextual)
+                issues.add(typeErr(context, "string", node))
+
+            "integer" -> if (!node.isInt)
+                issues.add(typeErr(context, "integer", node))
+
+            "number" -> if (!node.isNumber)
+                issues.add(typeErr(context, "number", node))
+
+            "boolean" -> if (!node.isBoolean)
+                issues.add(typeErr(context, "boolean", node))
+        }
+    }
+
+    private fun typeErr(ctx: String, expected: String, actual: JsonNode) =
+        Issue(
+            "TYPE_MISMATCH",
+            Severity.MEDIUM,
+            "Неверный тип. Ожидается $expected в $ctx",
+            url = ctx,
+            method = null,
+            evidence = actual.toString()
+        )
+
+    // ---------------------------------------------------------
+    // SHADOW ENDPOINTS
+    // ---------------------------------------------------------
+    private fun detectShadowEndpoints(
+        observed: Set<String>,
+        responses: Map<String, Set<Int>>,
+        pathsMap: Map<String, *>,
+        userInput: UserInput,
+        issues: MutableList<Issue>
+    ) {
+        val declaredPatterns = pathsMap.keys.toList()
+
+        observed.forEach { url ->
+            val path = url.removePrefix(userInput.targetUrl)
+
+            val matchesSpec = declaredPatterns.any { pattern ->
+                val regex = pattern.replace("{", "\\{").replace("}", "\\}").replace("\\{[^/]+\\}".toRegex(), "[^/]+")
+                    .let { Regex("^$it$") }
+                regex.matches(path)
+            }
+
+            if (!matchesSpec) {
+                val codes = responses[url] ?: emptySet()
+                if (codes.any { it != 404 && it != 405 }) {
+                    issues.add(
+                        Issue(
+                            type = "SHADOW_ENDPOINT",
+                            severity = Severity.HIGH,
+                            description = "Endpoint '$url' не описан в спецификации, но отвечает",
                             url = url,
-                            method = method,
-                            evidence = value.toString(),
-                            recommendation = "Исправьте тип данных поля '$k' в API или спецификации"
+                            method = null,
+                            evidence = codes.joinToString(),
+                            recommendation = "Проверьте необходимость этого эндпоинта"
                         )
                     )
                 }
@@ -294,56 +437,16 @@ class ApiScanService(
         }
     }
 
-    private fun detectExcessiveData(
-        response: JsonNode,
-        schemaOwner: io.swagger.v3.oas.models.Operation,
-        url: String,
-        method: String,
-        issues: MutableList<Issue>
-    ) {
-        val schema = schemaOwner.responses?.get("200")?.content?.values?.firstOrNull()?.schema ?: return
-        response.fieldNames().asSequence().forEach { field ->
-            if (schema.properties?.containsKey(field) != true) {
-                issues.add(
-                    Issue(
-                        type = "POTENTIAL_EXCESS_DATA",
-                        severity = Severity.LOW,
-                        description = "Поле '$field' присутствует в ответе, но отсутствует в спецификации",
-                        url = url,
-                        method = method,
-                        evidence = response[field].toString(),
-                        recommendation = "Удалить лишние данные из ответа или добавить поле в спецификацию"
-                    )
-                )
-            }
-        }
+    // ---------------------------------------------------------
+    // UTILITIES
+    // ---------------------------------------------------------
+
+    private fun generateValidRequestBody(operation: io.swagger.v3.oas.models.Operation, userInput: UserInput): JsonNode? {
+        val schema = operation.requestBody?.content?.values?.firstOrNull()?.schema ?: return null
+        return buildSampleJsonFromSchema(schema, userInput)
     }
 
-    private fun checkMissingFields(
-        response: JsonNode,
-        schema: io.swagger.v3.oas.models.media.Schema<*>,
-        url: String,
-        method: String,
-        issues: MutableList<Issue>
-    ) {
-        schema.required?.forEach { field ->
-            if (!response.has(field)) {
-                issues.add(
-                    Issue(
-                        type = "POTENTIAL_MISSING_FIELD",
-                        severity = Severity.MEDIUM,
-                        description = "Отсутствует обязательное поле '$field'",
-                        url = url,
-                        method = method,
-                        evidence = null,
-                        recommendation = "Добавьте поле '$field' в ответ API или обновите спецификацию"
-                    )
-                )
-            }
-        }
-    }
-
-    private fun buildSampleJsonFromSchema(schema: io.swagger.v3.oas.models.media.Schema<*>, userInput: UserInput): ObjectNode {
+    private fun buildSampleJsonFromSchema(schema: Schema<*>, userInput: UserInput): ObjectNode {
         val node = mapper.createObjectNode()
         schema.properties?.forEach { (key, prop) ->
             when (prop.type) {
@@ -388,7 +491,7 @@ class ApiScanService(
 }
 
 // ----------------------
-// Глобальные проверки
+// Global Checks
 // ----------------------
 suspend fun runGlobalChecks(client: io.ktor.client.HttpClient, baseUrl: String, issues: MutableList<Issue>, userInput: UserInput) {
     if (userInput.enableRateLimiting) checkRateLimiting(client, baseUrl, issues)
