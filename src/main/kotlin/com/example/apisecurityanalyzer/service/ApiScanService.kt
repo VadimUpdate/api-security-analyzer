@@ -34,7 +34,6 @@ class ApiScanService(
     fun runScan(userInput: UserInput): ScanReport = runBlocking {
         val issues = mutableListOf<Issue>()
 
-        // Загрузка спецификации OpenAPI
         val specText = try {
             client.get(userInput.specUrl).bodyAsText()
         } catch (e: Exception) {
@@ -53,7 +52,6 @@ class ApiScanService(
         val pathsMap = openApi.paths ?: emptyMap()
         val totalEndpoints = pathsMap.entries.sumOf { (_, pi) -> extractOperations(pi).size }
 
-        // Получение токена
         val openIdToken = try {
             authService.getOpenIdToken(userInput.clientId, userInput.clientSecret, issues)
         } catch (e: Exception) {
@@ -61,29 +59,9 @@ class ApiScanService(
             null
         }
 
-        // Получение consents через create*Consent
         val accountConsentId = consentService.createAccountConsent(userInput, openIdToken ?: "", issues)
         val paymentConsentId = consentService.createPaymentConsent(userInput, openIdToken ?: "", issues)
         val productConsentId = consentService.createProductAgreementConsent(userInput, openIdToken ?: "", issues).first
-
-        // ---------------------------
-        // ПЛАГИНЫ
-        // ---------------------------
-        val plugins: List<CheckerPlugin> = listOf(
-            BrokenAuthCheckerPlugin(clientProvider, consentService, userInput, openIdToken ?: ""),
-            BOLACheckerPlugin(
-                clientProvider,
-                consentService,
-                fuzzerService,
-                userInput,
-                openIdToken ?: "",
-                consentService.selectConsentForPath("", paymentConsentId, productConsentId, accountConsentId) ?: ""
-            ),
-            IDORCheckerPlugin(clientProvider, consentService, userInput, openIdToken ?: ""),
-            MassAssignmentCheckerPlugin(clientProvider, consentService, userInput),
-            InjectionCheckerPlugin(clientProvider, consentService, userInput),
-            SensitiveFilesCheckerPlugin(clientProvider, consentService, userInput, openIdToken ?: "")
-        )
 
         val semaphore = Semaphore(userInput.maxConcurrency)
 
@@ -108,32 +86,59 @@ class ApiScanService(
                                 val body = generateValidRequestBody(operation, userInput)
                                 performRequestWithAuth(url, methodStr, body, openIdToken, issues, userInput.useGostGateway)
 
-                                plugins.forEach { plugin ->
-                                    plugin.runCheck(url, methodStr, operation, issues)
+                                if (userInput.enableBrokenAuth) {
+                                    BrokenAuthCheckerPlugin(clientProvider, consentService, userInput, openIdToken ?: "")
+                                        .runCheck(url, methodStr, operation, issues)
+                                }
+                                if (userInput.enableBOLA) {
+                                    BOLACheckerPlugin(
+                                        clientProvider,
+                                        consentService,
+                                        fuzzerService,
+                                        userInput,
+                                        openIdToken ?: "",
+                                        consentService.selectConsentForPath(url, paymentConsentId, productConsentId, accountConsentId) ?: ""
+                                    ).runCheck(url, methodStr, operation, issues)
+                                }
+                                if (userInput.enableIDOR) {
+                                    IDORCheckerPlugin(clientProvider, consentService, userInput, openIdToken ?: "")
+                                        .runCheck(url, methodStr, operation, issues)
+                                }
+                                if (userInput.enableMassAssignment) {
+                                    MassAssignmentCheckerPlugin(clientProvider, consentService, userInput)
+                                        .runCheck(url, methodStr, operation, issues)
+                                }
+                                if (userInput.enableInjection) {
+                                    InjectionCheckerPlugin(clientProvider, consentService, userInput)
+                                        .runCheck(url, methodStr, operation, issues)
+                                }
+                                if (userInput.enableSensitiveFiles) {
+                                    SensitiveFilesCheckerPlugin(clientProvider, consentService, userInput, openIdToken ?: "")
+                                        .runCheck(url, methodStr, operation, issues)
                                 }
 
-                                fuzzerService.runFuzzingPublic(
-                                    url = url,
-                                    operation = operation,
-                                    httpMethod = httpMethod,
-                                    clientId = userInput.clientId,
-                                    clientSecret = userInput.clientSecret,
-                                    consentId = consentService.selectConsentForPath(url, paymentConsentId, productConsentId, accountConsentId) ?: "",
-                                    issues = issues
-                                )
+                                if (userInput.enableFuzzing) {
+                                    fuzzerService.runFuzzingPublic(
+                                        url = url,
+                                        operation = operation,
+                                        httpMethod = httpMethod,
+                                        clientId = userInput.clientId,
+                                        clientSecret = userInput.clientSecret,
+                                        consentId = consentService.selectConsentForPath(url, paymentConsentId, productConsentId, accountConsentId) ?: "",
+                                        issues = issues
+                                    )
+                                }
                             } catch (ex: Exception) {
                                 issues.add(Issue("SCAN_ERROR", Severity.MEDIUM, "Ошибка при запросе $url: ${ex.message}"))
                             }
                             Unit
                         }
                     })
-
                 }
             }
             jobs.awaitAll()
         }
 
-        // Глобальные проверки
         if (userInput.enableRateLimiting || userInput.enableSensitiveFiles || userInput.enablePublicSwagger) {
             runGlobalChecks(client, userInput.targetUrl, issues, userInput)
         }
@@ -239,9 +244,6 @@ class ApiScanService(
     }
 }
 
-// ----------------------
-// ГЛОБАЛЬНЫЕ ПРОВЕРКИ
-// ----------------------
 suspend fun runGlobalChecks(
     client: io.ktor.client.HttpClient,
     baseUrl: String,

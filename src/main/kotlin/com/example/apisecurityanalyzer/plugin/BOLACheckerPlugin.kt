@@ -29,16 +29,16 @@ class BOLACheckerPlugin(
     ) {
         val httpMethod = convertToHttpMethod(method)
 
-        runBola(url, httpMethod, operation, issues)
-        runIDOR(url, method, operation, issues)
-        runInjection(url, method, operation, issues)
-        runMassAssignment(url, method, operation, issues)
-        runExcessiveExposure(url, method, operation, issues)
-        runRoleTampering(url, method, operation, issues)
-        runBrokenAuth(url, method, operation, issues)
-        runRateLimit(url, method, operation, issues)
-        runDebugExposure(url, method, operation, issues)
+        if (userInput.enableBOLA) runBola(url, httpMethod, operation, issues)
+        if (userInput.enableIDOR) runIDOR(url, method, operation, issues)
+        if (userInput.enableInjection) runInjection(url, method, operation, issues)
+        if (userInput.enableMassAssignment) runMassAssignment(url, method, operation, issues)
+        if (userInput.enableSensitiveFiles) runExcessiveExposure(url, method, operation, issues)
+        if (userInput.enableBrokenAuth) runBrokenAuth(url, method, operation, issues)
+        if (userInput.enableRateLimiting) runRateLimit(url, method, operation, issues)
+        runDebugExposure(url, method, operation, issues) // обычно debugExposure можно всегда проверять
     }
+
 
     private fun convertToHttpMethod(method: String): HttpMethod =
         when (method.uppercase()) {

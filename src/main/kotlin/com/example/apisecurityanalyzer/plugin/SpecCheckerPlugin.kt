@@ -5,6 +5,7 @@ import com.example.apianalyzer.model.Severity
 import com.example.apianalyzer.model.UserInput
 import com.example.apianalyzer.service.ClientProvider
 import com.example.apianalyzer.service.ConsentService
+import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.swagger.v3.oas.models.Operation
 
@@ -15,7 +16,7 @@ class SpecCheckerPlugin(
     private val bankToken: String
 ) : CheckerPlugin {
 
-    override val name: String = "Spec"
+    override val name: String = "SpecChecker"
 
     override suspend fun runCheck(
         url: String,
@@ -23,66 +24,48 @@ class SpecCheckerPlugin(
         operation: Operation,
         issues: MutableList<Issue>
     ) {
-        val ctx = consentService.buildRequestContext(
-            fullUrl = url,
-            method = method,
-            operation = operation,
-            userInput = userInput,
-            bankToken = bankToken,
-            consentId = consentService.selectConsentForPath(
-                url.removePrefix(userInput.targetUrl),
-                paymentConsentId = null,
-                productConsentId = null,
-                accountConsentId = null
-            )
-        )
+        val responseBody = safeRequest(url, method)
+        responseBody?.let { body ->
+            checkSpecCompliance(url, method, operation, body, issues)
+        }
+    }
 
-        println("=== Spec Check ===")
-        println("Request URL: ${ctx.url}")
-        println("Request Headers: ${ctx.headers}")
-        println("Request Body: ${ctx.body ?: "пусто"}")
+    private suspend fun safeRequest(url: String, method: String): String? {
+        return try {
+            clientProvider.client.request(url) {
+                this.method = io.ktor.http.HttpMethod.parse(method)
+            }.bodyAsText()
+        } catch (_: Exception) {
+            null
+        }
+    }
 
-        try {
-            val response: HttpResponse? = consentService.executeContext(ctx)
-
-            response?.let {
-                println("Response Status: ${it.status.value}")
-                println("Response Headers: ${it.headers.entries().joinToString()}")
-                val respBody = runCatching { it.bodyAsText() }.getOrElse { "не удалось прочитать тело" }
-                println("Response Body: $respBody")
-
-                if (it.status.value >= 400) {
+    private fun checkSpecCompliance(
+        url: String,
+        method: String,
+        operation: Operation,
+        responseBody: String,
+        issues: MutableList<Issue>
+    ) {
+        // Простейшая проверка: отсутствие обязательных полей
+        operation.responses?.forEach { (_, resp) ->
+            val requiredFields = resp.content?.values?.firstOrNull()?.schema?.required ?: emptyList()
+            requiredFields.forEach { field ->
+                if (!responseBody.contains(field)) {
                     issues.add(
                         Issue(
-                            type = "SPEC_MISMATCH",
+                            type = "SPECMATCH",
                             severity = Severity.MEDIUM,
-                            description = "Ответ не соответствует спецификации (HTTP ${it.status.value})",
+                            description = "Обязательное поле '$field' отсутствует в ответе",
                             url = url,
-                            method = method
+                            method = method,
+                            evidence = responseBody
                         )
                     )
                 }
-            } ?: run {
-                issues.add(
-                    Issue(
-                        type = "SPEC_MISMATCH",
-                        severity = Severity.MEDIUM,
-                        description = "Нет ответа от сервера",
-                        url = url,
-                        method = method
-                    )
-                )
             }
-        } catch (e: Exception) {
-            issues.add(
-                Issue(
-                    type = "SPEC_CHECK_PLUGIN_ERROR",
-                    severity = Severity.LOW,
-                    description = "Ошибка SpecChecker: ${e.message}",
-                    url = url,
-                    method = method
-                )
-            )
         }
+
+        // TODO: добавить проверку типов и выявление неописанных эндпоинтов
     }
 }

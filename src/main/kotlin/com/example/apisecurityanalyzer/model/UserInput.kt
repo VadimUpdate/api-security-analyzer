@@ -17,10 +17,10 @@ data class UserInput(
     val enableInjection: Boolean = true,
     val enableSensitiveFiles: Boolean = true,
     val enablePublicSwagger: Boolean = true,
+    val enableIDOR: Boolean = false, // <-- новый флаг
 
     val politenessDelayMs: Int = 200,
     val maxConcurrency: Int = 5,
 
-    // новый флаг для ГОСТ
     val useGostGateway: Boolean = false
 )
