@@ -1,6 +1,6 @@
 
 
-Пример запроса Postman 
+Пример запроса в Postman 
 
 
 POST http://195.2.73.25:8080/api/analyze
@@ -8,9 +8,9 @@ POST http://195.2.73.25:8080/api/analyze
 {
   "specUrl": "https://raw.githubusercontent.com/VadimUpdate/jsonSpec/refs/heads/main/bankenpoints",
   "targetUrl": "https://api.bankingapi.ru/api/rb/pmnt/acceptance/mobile/hackathon/v1",
-  "clientId": "team186",
-  "clientSecret": "sSwEucZD6NXXi0eC0Fov7sFJD9iFKWOl",
-  "requestingBank": "team186",
+  "clientId": "{YourClientId}",
+  "clientSecret": "{YourClientSecret}",
+  "requestingBank": "{YourRequestingBank}",
   "enableFuzzing": true,
   "enableBOLA": true,
   "enableBrokenAuth": true,
